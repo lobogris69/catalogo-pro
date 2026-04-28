@@ -1,0 +1,80 @@
+version: '3.9'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: catalogo-pro-postgres
+    environment:
+      POSTGRES_USER: catalogo_user
+      POSTGRES_PASSWORD: secure_password_change_me
+      POSTGRES_DB: catalogo_pro
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/src/db/migrations:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U catalogo_user -d catalogo_pro"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - catalogo-network
+
+  backend:
+    build: ./backend
+    container_name: catalogo-pro-backend
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: postgresql://catalogo_user:secure_password_change_me@postgres:5432/catalogo_pro
+      JWT_SECRET: your_jwt_secret_change_me_in_production
+      JWT_EXPIRY: 7d
+      PORT: 3001
+    ports:
+      - "3001:3001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+    command: npm run dev
+    networks:
+      - catalogo-network
+
+  frontend:
+    build: ./frontend
+    container_name: catalogo-pro-frontend
+    environment:
+      REACT_APP_API_URL: http://localhost:3001
+      REACT_APP_ENV: development
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    networks:
+      - catalogo-network
+
+  nginx:
+    image: nginx:alpine
+    container_name: catalogo-pro-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./infra/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - frontend
+      - backend
+    networks:
+      - catalogo-network
+
+volumes:
+  postgres_data:
+
+networks:
+  catalogo-network:
+    driver: bridge

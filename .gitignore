@@ -1,0 +1,67 @@
+# Dependencies
+node_modules/
+package-lock.json
+yarn.lock
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Build directories
+/dist
+/build
+/.next
+/out
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# Cache
+.cache/
+.eslintcache
+.prettierignore
+
+# Test coverage
+/coverage
+
+# Temporary files
+*.tmp
+*.temp
+.env.test
+
+# Docker
+postgres_data/
+.dockerignore
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Upload directories
+uploads/
+temp/
+
+# Python (para scripts ocasionales)
+__pycache__/
+*.py[cod]
+*$py.class
+
+# VS Code settings
+.vscode/settings.json
+.vscode/tasks.json
+.vscode/launch.json
+.vscode/extensions.json

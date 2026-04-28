@@ -1,0 +1,276 @@
+/**
+ * CatalogPRO - App Styles
+ */
+
+.app {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.app-header {
+  background: linear-gradient(135deg, #1F4E78 0%, #2E5C8A 100%);
+  color: white;
+  padding: 2rem 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  margin-bottom: 2rem;
+}
+
+.app-header h1 {
+  color: white;
+  margin-bottom: 0.5rem;
+  font-size: 28px;
+}
+
+.app-header p {
+  color: rgba(255, 255, 255, 0.9);
+  margin: 0;
+  font-size: 14px;
+}
+
+.app-main {
+  flex: 1;
+  padding-bottom: 2rem;
+}
+
+.app-footer {
+  background-color: #f8f9fa;
+  border-top: 1px solid #dee2e6;
+  padding: 1.5rem 0;
+  text-align: center;
+  margin-top: 2rem;
+  color: #6c757d;
+  font-size: 12px;
+}
+
+.app-footer p {
+  margin: 0.25rem 0;
+}
+
+/* Welcome Section */
+.welcome {
+  background: white;
+  padding: 2rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.welcome h2 {
+  color: #1F4E78;
+  margin-bottom: 1rem;
+}
+
+.welcome > p {
+  font-size: 16px;
+  color: #555;
+  margin-bottom: 2rem;
+}
+
+/* Status Grid */
+.status-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.status-card {
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  padding: 1.5rem;
+  border-radius: 8px;
+  border-left: 4px solid #1F4E78;
+  transition: all 0.3s ease;
+}
+
+.status-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+}
+
+.status-card h3 {
+  font-size: 16px;
+  margin-bottom: 0.5rem;
+  color: #1F4E78;
+}
+
+.status-card p {
+  font-size: 13px;
+  margin-bottom: 0.5rem;
+  color: #6c757d;
+}
+
+.status-card p:last-child {
+  margin-bottom: 0;
+}
+
+/* Features Section */
+.features {
+  margin-bottom: 2rem;
+  padding: 1.5rem;
+  background: #f0f7ff;
+  border-radius: 8px;
+  border-left: 4px solid #17a2b8;
+}
+
+.features h3 {
+  color: #1F4E78;
+  margin-bottom: 1rem;
+}
+
+.features ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.features li {
+  padding: 0.5rem 0;
+  color: #555;
+}
+
+/* Next Steps Section */
+.next-steps {
+  margin-bottom: 2rem;
+  padding: 1.5rem;
+  background: #fff8f0;
+  border-radius: 8px;
+  border-left: 4px solid #ffc107;
+}
+
+.next-steps h3 {
+  color: #1F4E78;
+  margin-bottom: 1rem;
+}
+
+.next-steps ol {
+  margin-left: 2rem;
+}
+
+.next-steps li {
+  padding: 0.5rem 0;
+  color: #555;
+}
+
+.next-steps code {
+  background-color: white;
+  padding: 0.25rem 0.5rem;
+  border: 1px solid #ddd;
+  color: #d32f2f;
+  font-size: 12px;
+}
+
+/* Credentials Section */
+.credentials {
+  padding: 1.5rem;
+  background: #f0fff4;
+  border-radius: 8px;
+  border-left: 4px solid #28a745;
+}
+
+.credentials h3 {
+  color: #1F4E78;
+  margin-bottom: 1rem;
+}
+
+.credentials-table {
+  border-collapse: collapse;
+}
+
+.credentials-table thead {
+  background-color: #28a745;
+  color: white;
+}
+
+.credentials-table th {
+  padding: 0.75rem;
+  text-align: left;
+  border: none;
+  color: white;
+  background-color: #28a745;
+}
+
+.credentials-table td {
+  padding: 0.75rem;
+  border: 1px solid #dee2e6;
+}
+
+.credentials-table tbody tr:nth-child(odd) {
+  background-color: #f8f9fa;
+}
+
+.credentials-table tbody tr:hover {
+  background-color: #e8f5e9;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .app-header {
+    padding: 1.5rem 0;
+    margin-bottom: 1.5rem;
+  }
+
+  .app-header h1 {
+    font-size: 24px;
+  }
+
+  .welcome {
+    padding: 1.5rem;
+  }
+
+  .status-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .features,
+  .next-steps,
+  .credentials {
+    padding: 1rem;
+  }
+
+  .next-steps ol {
+    margin-left: 1.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .app-header {
+    padding: 1rem 0;
+    margin-bottom: 1rem;
+  }
+
+  .app-header h1 {
+    font-size: 20px;
+  }
+
+  .app-main {
+    padding-bottom: 1rem;
+  }
+
+  .welcome {
+    padding: 1rem;
+  }
+
+  .status-card {
+    padding: 1rem;
+  }
+
+  .status-card h3 {
+    font-size: 14px;
+  }
+
+  .features,
+  .next-steps,
+  .credentials {
+    padding: 0.75rem;
+  }
+
+  .credentials-table {
+    font-size: 12px;
+  }
+
+  .credentials-table th,
+  .credentials-table td {
+    padding: 0.5rem;
+  }
+}

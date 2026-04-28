@@ -1,0 +1,336 @@
+================================================================================
+🚀 CATALOGO PRO - INSTRUCCIONES PARA EJECUTAR
+================================================================================
+
+ESTADO: ✅ CÓDIGO BASE COMPLETAMENTE GENERADO Y LISTO
+
+================================================================================
+OPCIÓN 1: LINUX / MAC
+================================================================================
+
+1. Abre terminal y navega a la carpeta del proyecto:
+   $ cd catalogo-pro-base
+
+2. Dale permisos al script:
+   $ chmod +x start.sh
+
+3. Ejecuta el script de inicio:
+   $ ./start.sh
+
+   Este script hará automáticamente:
+   ✓ Verificar Docker y Docker Compose
+   ✓ Crear archivos .env
+   ✓ Limpiar containers anteriores
+   ✓ Build de images
+   ✓ Iniciar servicios
+   ✓ Esperar a que arranque
+   ✓ Verificar conectividad
+   ✓ Mostrar credenciales
+
+4. Espera 10-15 segundos a que todo esté listo
+
+5. Accede a: http://localhost:3000
+
+================================================================================
+OPCIÓN 2: WINDOWS
+================================================================================
+
+1. Abre cmd/PowerShell y navega a la carpeta del proyecto:
+   > cd catalogo-pro-base
+
+2. Ejecuta el script batch:
+   > start.bat
+
+   Este script hará automáticamente lo mismo que en Linux/Mac
+
+3. Espera 10-15 segundos a que todo esté listo
+
+4. Accede a: http://localhost:3000
+
+================================================================================
+OPCIÓN 3: MANUAL (Cualquier SO)
+================================================================================
+
+1. Abre terminal/cmd en la carpeta del proyecto
+
+2. Copia archivos de configuración:
+   $ cp backend/.env.example backend/.env
+   $ cp frontend/.env.example frontend/.env
+   $ cp infra/.env.example infra/.env (o crearlos manualmente)
+
+3. Inicia Docker Compose:
+   $ docker-compose up -d
+
+4. Espera 2-3 minutos a que arranque todo
+
+5. Verifica el estado:
+   $ docker-compose ps
+   
+   Deberías ver 4 containers:
+   - postgres (healthy)
+   - backend (up)
+   - frontend (up)
+   - nginx (up)
+
+6. Accede a: http://localhost:3000
+
+================================================================================
+CREDENCIALES DE PRUEBA
+================================================================================
+
+ADMIN:
+  Email:     admin@lomhifar.com
+  Password:  admin123
+
+COMERCIAL 1:
+  Email:     comercial1@lomhifar.com
+  Password:  sales123
+
+COMERCIAL 2:
+  Email:     comercial2@lomhifar.com
+  Password:  sales123
+
+================================================================================
+ACCESO A SERVICIOS
+================================================================================
+
+Frontend (React):
+  🌐 http://localhost:3000
+  ✓ Interface web completa
+  ✓ Catálogos, búsqueda, carrito
+  ✓ Login, favoritos, offline
+
+Backend API:
+  🔌 http://localhost:3001
+  ✓ Endpoints REST
+  ✓ Health check: /health
+
+PostgreSQL:
+  💾 localhost:5432
+  Usuario: catalogo_user
+  Contraseña: secure_password_change_me
+  Base de datos: catalogo_pro
+
+Conectar a BD desde terminal:
+  $ psql postgresql://catalogo_user:secure_password_change_me@localhost/catalogo_pro
+
+Nginx Reverse Proxy:
+  🔀 localhost:80 (redirige a frontend/backend)
+
+================================================================================
+VERIFICAR QUE TODO FUNCIONA
+================================================================================
+
+1. Abrir navegador: http://localhost:3000
+
+2. Debería cargar la página de bienvenida de CatalogPRO
+
+3. Hacer login con:
+   Email: admin@lomhifar.com
+   Password: admin123
+
+4. Si entra → ¡TODO FUNCIONA! ✅
+
+5. Ver logs del backend:
+   $ docker-compose logs -f backend
+   
+   Deberías ver:
+   ✅ Server running on port 3001
+   ✅ Base de datos conectada
+
+6. Ver logs del frontend:
+   $ docker-compose logs -f frontend
+   
+   Deberías ver:
+   ✅ Compiled successfully
+   ✅ Webpack compiled
+
+================================================================================
+COMANDOS ÚTILES
+================================================================================
+
+Ver estado de containers:
+  $ docker-compose ps
+
+Ver logs del backend:
+  $ docker-compose logs -f backend
+
+Ver logs del frontend:
+  $ docker-compose logs -f frontend
+
+Ver todos los logs:
+  $ docker-compose logs -f
+
+Reiniciar servicios:
+  $ docker-compose restart
+
+Detener servicios:
+  $ docker-compose down
+
+Detener y limpiar TODO (incluye datos):
+  $ docker-compose down -v
+
+Ejecutar comando en container:
+  $ docker-compose exec backend npm run dev
+  $ docker-compose exec frontend npm start
+
+Entrar a la BD:
+  $ docker-compose exec postgres psql -U catalogo_user -d catalogo_pro
+
+Ver tablas de la BD:
+  $ docker-compose exec postgres psql -U catalogo_user -d catalogo_pro -c "\dt"
+
+Ver usuarios:
+  $ docker-compose exec postgres psql -U catalogo_user -d catalogo_pro -c "SELECT * FROM users;"
+
+================================================================================
+TROUBLESHOOTING
+================================================================================
+
+PROBLEMA: Puerto ya en uso (3000, 3001, 5432)
+──────────────────────────────────────────────
+Solución:
+  Linux/Mac:
+    $ lsof -i :3000
+    $ kill -9 <PID>
+  
+  Windows:
+    > netstat -ano | findstr :3000
+    > taskkill /PID <PID> /F
+
+  O cambiar puertos en docker-compose.yml
+
+PROBLEMA: "Cannot connect to Docker daemon"
+────────────────────────────────────────────
+Solución:
+  - Instala Docker Desktop desde https://www.docker.com/products/docker-desktop
+  - En Linux: sudo systemctl start docker
+  - En Mac: Abre Docker Desktop desde Applications
+
+PROBLEMA: Frontend muestra "Cannot GET /"
+──────────────────────────────────────────
+Solución:
+  - Espera más tiempo (el build puede tardar)
+  - Ver logs: docker-compose logs -f frontend
+  - Limpiar y reiniciar: docker-compose down -v && docker-compose up -d
+
+PROBLEMA: Backend no responde en /health
+─────────────────────────────────────────
+Solución:
+  - Ver logs: docker-compose logs -f backend
+  - Esperar más tiempo (npm install toma tiempo)
+  - Verificar que PostgreSQL está healthy: docker-compose ps
+
+PROBLEMA: Error de BD (PostgreSQL)
+──────────────────────────────────
+Solución:
+  - Verificar que postgres está healthy: docker-compose ps
+  - Ver logs: docker-compose logs postgres
+  - Si no arranca: docker-compose down -v && docker-compose up -d
+  - Esperar a que PostgreSQL esté ready (5-10 segundos)
+
+PROBLEMA: Error de permisos en Linux/Mac
+────────────────────────────────────────
+Solución:
+  - Hacer script ejecutable: chmod +x start.sh
+  - Ejecutar con sudo si es necesario: sudo ./start.sh
+
+================================================================================
+¿QUÉ SUCEDE AL EJECUTAR?
+================================================================================
+
+Cuando ejecutas docker-compose up -d:
+
+1. POSTGRES arranca primero
+   - Crea la BD "catalogo_pro"
+   - Carga el schema SQL (12 tablas)
+   - Carga los datos iniciales (seed)
+   - Se demora: 5-10 segundos
+
+2. BACKEND arranca (depende de postgres)
+   - npm install (instala dependencias)
+   - npm run dev (compila TypeScript y arranca)
+   - Se conecta a PostgreSQL
+   - Se demora: 30-60 segundos
+
+3. FRONTEND arranca (después de backend)
+   - npm install (instala dependencias)
+   - npm start (compila React y arranca webpack)
+   - Se conecta a backend API
+   - Se demora: 45-90 segundos
+
+4. NGINX arranca
+   - Actúa como reverse proxy
+   - Redirige /api al backend
+   - Redirige / al frontend
+   - Se demora: 5 segundos
+
+TIEMPO TOTAL: 2-3 minutos desde "docker-compose up -d"
+
+================================================================================
+SIGUIENTE PASO DESPUÉS DE EJECUTAR
+================================================================================
+
+Una vez que todo funciona:
+
+1. ✅ Verifica que puedes hacer login
+
+2. 📚 Lee la documentación:
+   - README.md
+   - GENERACION-COMPLETADA.txt
+
+3. 🔍 Explora el código:
+   - backend/src/services/ (lógica)
+   - frontend/src/store/ (Redux)
+   - backend/src/db/migrations/001_initial_schema.sql (BD)
+
+4. 🚀 Comienza desarrollo:
+   - Crea componentes React en frontend/src/components/
+   - Crea rutas en backend/src/routes/
+   - Implementa controllers en backend/src/controllers/
+
+5. 🧪 Prueba la API:
+   - Usa Postman o Insomnia
+   - Importa los endpoints
+   - Prueba auth, articles, catalogs, orders
+
+6. 📱 Prueba offline:
+   - Abre DevTools (F12)
+   - Network → Offline
+   - Intenta crear un pedido
+   - Los datos se guardan en IndexedDB
+   - Reconnect → Se sincroniza automáticamente
+
+================================================================================
+SOPORTE
+================================================================================
+
+Si hay problemas:
+
+1. Ver logs detallados:
+   docker-compose logs -f
+
+2. Revisar este archivo:
+   ./INSTRUCCIONES-EJECUTAR.txt
+
+3. Consultar documentación:
+   ./README.md
+   ./GENERACION-COMPLETADA.txt
+
+4. Contactar al equipo técnico de LOMHIFAR
+
+================================================================================
+
+¡LISTO PARA COMENZAR! 🚀
+
+Ejecuta start.sh (Linux/Mac) o start.bat (Windows)
+
+Espera 2-3 minutos
+
+Accede a http://localhost:3000
+
+Login con: admin@lomhifar.com / admin123
+
+¡Disfruta! 🎉
+
+================================================================================
