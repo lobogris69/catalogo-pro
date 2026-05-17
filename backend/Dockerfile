@@ -2,20 +2,20 @@ FROM node:18-alpine
 
 WORKDIR /app
 
-# Copiar package files
+# Copiar package.json (y package-lock.json si existe)
 COPY package*.json ./
 
-# Instalar dependencias
-RUN npm ci
+# Instalar dependencias (npm install no requiere package-lock.json)
+RUN npm install
 
-# Copiar código fuente
+# Copiar el resto del código fuente
 COPY . .
 
-# Compilar TypeScript
+# Compilar TypeScript y copiar los SQL al dist
 RUN npm run build
 
 # Exponer puerto
 EXPOSE 3001
 
-# Comando por defecto
-CMD ["npm", "run", "dev"]
+# Arrancar en modo producción (código ya compilado)
+CMD ["npm", "start"]
