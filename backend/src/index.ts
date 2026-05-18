@@ -32,11 +32,15 @@ const pool = new Pool({
 const authService = new AuthService(pool);
 
 app.use(helmet());
+// CORS: permite peticiones desde cualquier origen.
+// En esta etapa (sin frontend desplegado aun) aceptamos todos los origenes.
+// Se restringira al dominio real en la etapa del frontend.
 app.use(cors({
-  origin: (process.env.CORS_ORIGIN || '*').split(','),
+  origin: true,
   credentials: true,
   optionsSuccessStatus: 200,
 }));
+app.options('*', cors({ origin: true, credentials: true }));
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
