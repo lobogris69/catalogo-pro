@@ -7,44 +7,26 @@
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   :root {
-    --azul: #17a2b8;
-    --azul-osc: #138496;
-    --fondo: #0f1117;
-    --panel: #1a1d27;
-    --borde: #2a2e3c;
-    --texto: #e7e9ee;
-    --gris: #8b90a0;
-    --verde: #28a745;
-    --rojo: #dc3545;
+    --azul: #17a2b8; --azul-osc: #138496; --fondo: #0f1117;
+    --panel: #1a1d27; --borde: #2a2e3c; --texto: #e7e9ee;
+    --gris: #8b90a0; --verde: #28a745; --rojo: #dc3545;
   }
-  body {
-    font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
-    background: var(--fondo);
-    color: var(--texto);
-    min-height: 100vh;
-  }
+  body { font-family: -apple-system,"Segoe UI",Roboto,sans-serif; background: var(--fondo); color: var(--texto); min-height: 100vh; }
   #root { min-height: 100vh; }
 
-  /* LOGIN */
   .login-wrap { display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 20px; }
-  .login-box {
-    background: var(--panel); border: 1px solid var(--borde); border-radius: 16px;
-    padding: 40px; width: 100%; max-width: 420px; box-shadow: 0 20px 60px rgba(0,0,0,0.4);
-  }
+  .login-box { background: var(--panel); border: 1px solid var(--borde); border-radius: 16px; padding: 40px; width: 100%; max-width: 420px; box-shadow: 0 20px 60px rgba(0,0,0,0.4); }
   .logo { text-align: center; margin-bottom: 28px; }
   .logo h1 { font-size: 28px; color: var(--azul); }
   .logo p { color: var(--gris); font-size: 13px; margin-top: 4px; }
   label { display: block; font-size: 13px; color: #b8bcc8; margin: 16px 0 6px; }
-  input, textarea {
+  input, textarea, select {
     width: 100%; padding: 13px 15px; background: var(--fondo);
     border: 1px solid var(--borde); border-radius: 9px; color: #fff;
     font-size: 15px; font-family: inherit;
   }
-  input:focus, textarea:focus { outline: none; border-color: var(--azul); }
-  .btn {
-    padding: 13px 20px; background: var(--azul); color: #fff; border: none;
-    border-radius: 9px; font-size: 15px; font-weight: 600; cursor: pointer;
-  }
+  input:focus, textarea:focus, select:focus { outline: none; border-color: var(--azul); }
+  .btn { padding: 13px 20px; background: var(--azul); color: #fff; border: none; border-radius: 9px; font-size: 15px; font-weight: 600; cursor: pointer; }
   .btn:hover { background: var(--azul-osc); }
   .btn:disabled { opacity: 0.6; cursor: wait; }
   .btn-full { width: 100%; margin-top: 24px; }
@@ -55,81 +37,60 @@
   .msg.ok { background: #10331f; color: #5ed98a; border: 1px solid #1f7a44; display: block; }
   .hint { margin-top: 20px; font-size: 12px; color: #6b7080; text-align: center; line-height: 1.7; }
 
-  /* APP */
-  .topbar {
-    background: var(--panel); border-bottom: 1px solid var(--borde);
-    padding: 16px 24px; display: flex; align-items: center; justify-content: space-between;
-  }
+  .topbar { background: var(--panel); border-bottom: 1px solid var(--borde); padding: 16px 24px; display: flex; align-items: center; justify-content: space-between; }
   .topbar h1 { font-size: 19px; color: var(--azul); cursor: pointer; }
   .topbar .user { font-size: 13px; color: var(--gris); }
-  .topbar button {
-    background: var(--borde); color: var(--texto); border: none;
-    padding: 8px 14px; border-radius: 7px; font-size: 13px; cursor: pointer; margin-left: 14px;
-  }
+  .topbar button { background: var(--borde); color: var(--texto); border: none; padding: 8px 14px; border-radius: 7px; font-size: 13px; cursor: pointer; margin-left: 14px; }
   .topbar button:hover { background: #363b4d; }
+  .nav { display: flex; gap: 6px; padding: 0 24px; background: var(--panel); border-bottom: 1px solid var(--borde); }
+  .nav button {
+    background: none; border: none; color: var(--gris); padding: 14px 18px;
+    font-size: 14px; cursor: pointer; border-bottom: 2px solid transparent;
+  }
+  .nav button.activo { color: var(--azul); border-bottom-color: var(--azul); font-weight: 600; }
+  .nav button:hover { color: var(--texto); }
   .contenido { max-width: 1000px; margin: 0 auto; padding: 30px 24px; }
 
-  .cab {
-    display: flex; align-items: center; justify-content: space-between;
-    margin-bottom: 22px; flex-wrap: wrap; gap: 12px;
-  }
+  .cab { display: flex; align-items: center; justify-content: space-between; margin-bottom: 22px; flex-wrap: wrap; gap: 12px; }
   .cab h2 { font-size: 22px; }
   .cab .sub { color: var(--gris); font-size: 13px; margin-top: 2px; }
 
   .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
-  .cat-card {
-    background: var(--panel); border: 1px solid var(--borde);
-    border-radius: 12px; padding: 20px; cursor: pointer; transition: border-color .15s;
-  }
+  .cat-card { background: var(--panel); border: 1px solid var(--borde); border-radius: 12px; padding: 20px; cursor: pointer; transition: border-color .15s; }
   .cat-card:hover { border-color: var(--azul); }
   .cat-card h3 { font-size: 17px; margin-bottom: 6px; }
   .cat-card .desc { color: var(--gris); font-size: 13px; margin-bottom: 14px; min-height: 34px; }
   .cat-card .meta { display: flex; gap: 8px; flex-wrap: wrap; }
-  .tag {
-    font-size: 12px; padding: 4px 10px; border-radius: 20px;
-    background: var(--fondo); border: 1px solid var(--borde); color: #b8bcc8;
-  }
+  .tag { font-size: 12px; padding: 4px 10px; border-radius: 20px; background: var(--fondo); border: 1px solid var(--borde); color: #b8bcc8; }
   .tag.pub { background: #10331f; color: #5ed98a; border-color: #1f7a44; }
   .tag.bor { background: #3a2e10; color: #e0c060; border-color: #7a6020; }
 
-  .vacio {
-    text-align: center; padding: 60px 20px; color: var(--gris);
-    background: var(--panel); border: 1px dashed var(--borde); border-radius: 12px;
-  }
+  .vacio { text-align: center; padding: 60px 20px; color: var(--gris); background: var(--panel); border: 1px dashed var(--borde); border-radius: 12px; }
   .cargando { text-align: center; padding: 50px; color: var(--gris); }
 
-  /* Modal */
-  .modal-fondo {
-    position: fixed; inset: 0; background: rgba(0,0,0,0.7);
-    display: none; align-items: center; justify-content: center; padding: 20px; z-index: 100;
-  }
+  .modal-fondo { position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: none; align-items: center; justify-content: center; padding: 20px; z-index: 100; }
   .modal-fondo.abierto { display: flex; }
-  .modal {
-    background: var(--panel); border: 1px solid var(--borde);
-    border-radius: 14px; padding: 28px; width: 100%; max-width: 460px;
-  }
+  .modal { background: var(--panel); border: 1px solid var(--borde); border-radius: 14px; padding: 28px; width: 100%; max-width: 480px; max-height: 90vh; overflow-y: auto; }
   .modal h3 { font-size: 19px; margin-bottom: 6px; }
   .modal .modal-sub { color: var(--gris); font-size: 13px; margin-bottom: 18px; }
   .modal-botones { display: flex; gap: 10px; margin-top: 22px; }
   .modal-botones .btn { flex: 1; margin-top: 0; }
+  .fila2 { display: flex; gap: 12px; }
+  .fila2 > div { flex: 1; }
 
-  /* Detalle catalogo */
-  .volver {
-    background: none; border: none; color: var(--azul); font-size: 14px;
-    cursor: pointer; padding: 0; margin-bottom: 16px;
-  }
+  .volver { background: none; border: none; color: var(--azul); font-size: 14px; cursor: pointer; padding: 0; margin-bottom: 16px; }
   .volver:hover { text-decoration: underline; }
-  .articulo-fila {
-    display: flex; justify-content: space-between; align-items: center;
-    padding: 14px 18px; border-bottom: 1px solid var(--borde); font-size: 14px;
-  }
+  .articulo-fila { display: flex; justify-content: space-between; align-items: center; padding: 14px 18px; border-bottom: 1px solid var(--borde); font-size: 14px; }
   .articulo-fila:last-child { border-bottom: none; }
   .articulo-fila .ref { color: var(--gris); font-size: 12px; }
   .precio { color: #5ed98a; font-weight: 600; font-size: 15px; }
-  .lista-articulos {
-    background: var(--panel); border: 1px solid var(--borde);
-    border-radius: 12px; overflow: hidden;
-  }
+  .lista-articulos { background: var(--panel); border: 1px solid var(--borde); border-radius: 12px; overflow: hidden; }
+  .art-check { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--borde); }
+  .art-check:last-child { border-bottom: none; }
+  .art-check input[type=checkbox] { width: 18px; height: 18px; flex-shrink: 0; }
+  .art-check .info { flex: 1; }
+  .art-check .info .nm { font-size: 14px; }
+  .art-check .info .rf { font-size: 12px; color: var(--gris); }
 </style>
 </head>
 <body>
@@ -155,58 +116,107 @@
   <!-- APP -->
   <div id="vista-app" style="display:none;">
     <div class="topbar">
-      <h1 onclick="irACatalogos()">🏥 CatalogPRO</h1>
+      <h1 onclick="navA('catalogos')">🏥 CatalogPRO</h1>
       <div>
         <span class="user" id="lbl-user"></span>
         <button onclick="cerrarSesion()">Cerrar sesión</button>
       </div>
     </div>
+    <div class="nav">
+      <button id="nav-catalogos" class="activo" onclick="navA('catalogos')">📋 Catálogos</button>
+      <button id="nav-articulos" onclick="navA('articulos')">📦 Artículos</button>
+    </div>
     <div class="contenido">
 
-      <!-- LISTA DE CATALOGOS -->
+      <!-- LISTA CATALOGOS -->
       <div id="pantalla-catalogos">
         <div class="cab">
-          <div>
-            <h2>Catálogos</h2>
-            <div class="sub">Gestiona los catálogos de productos de LOMHIFAR</div>
-          </div>
-          <button class="btn" onclick="abrirModalCrear()">+ Nuevo catálogo</button>
+          <div><h2>Catálogos</h2><div class="sub">Gestiona los catálogos de productos de LOMHIFAR</div></div>
+          <button class="btn" onclick="abrirModalCrearCat()">+ Nuevo catálogo</button>
         </div>
-        <div id="lista-catalogos">
-          <div class="cargando">Cargando catálogos...</div>
-        </div>
+        <div id="lista-catalogos"><div class="cargando">Cargando catálogos...</div></div>
       </div>
 
-      <!-- DETALLE DE UN CATALOGO -->
+      <!-- DETALLE CATALOGO -->
       <div id="pantalla-detalle" style="display:none;">
-        <button class="volver" onclick="irACatalogos()">← Volver a catálogos</button>
+        <button class="volver" onclick="navA('catalogos')">← Volver a catálogos</button>
         <div class="cab">
-          <div>
-            <h2 id="det-nombre">Catálogo</h2>
-            <div class="sub" id="det-desc"></div>
-          </div>
+          <div><h2 id="det-nombre">Catálogo</h2><div class="sub" id="det-desc"></div></div>
+          <button class="btn" onclick="abrirModalAnadirArts()">+ Añadir artículos</button>
         </div>
-        <div id="det-articulos" class="lista-articulos">
-          <div class="cargando">Cargando...</div>
+        <div id="det-articulos" class="lista-articulos"><div class="cargando">Cargando...</div></div>
+      </div>
+
+      <!-- LISTA ARTICULOS -->
+      <div id="pantalla-articulos" style="display:none;">
+        <div class="cab">
+          <div><h2>Artículos</h2><div class="sub">Catálogo maestro de productos de LOMHIFAR</div></div>
+          <button class="btn" onclick="abrirModalCrearArt()">+ Nuevo artículo</button>
         </div>
+        <div id="lista-articulos-todos" class="lista-articulos"><div class="cargando">Cargando artículos...</div></div>
       </div>
 
     </div>
   </div>
 
   <!-- MODAL CREAR CATALOGO -->
-  <div class="modal-fondo" id="modal-crear">
+  <div class="modal-fondo" id="modal-crear-cat">
     <div class="modal">
       <h3>Nuevo catálogo</h3>
       <div class="modal-sub">Crea un catálogo nuevo de productos</div>
       <label>Nombre del catálogo</label>
-      <input id="nuevo-nombre" type="text" placeholder="Ej: Catálogo Primavera 2026">
+      <input id="nuevo-cat-nombre" type="text" placeholder="Ej: Catálogo Primavera 2026">
       <label>Descripción (opcional)</label>
-      <textarea id="nuevo-desc" rows="3" placeholder="Breve descripción del catálogo"></textarea>
-      <div class="msg" id="crear-msg"></div>
+      <textarea id="nuevo-cat-desc" rows="3" placeholder="Breve descripción"></textarea>
+      <div class="msg" id="crear-cat-msg"></div>
       <div class="modal-botones">
-        <button class="btn btn-sec" onclick="cerrarModalCrear()">Cancelar</button>
-        <button class="btn" id="btn-crear" onclick="crearCatalogo()">Crear catálogo</button>
+        <button class="btn btn-sec" onclick="cerrarModal('modal-crear-cat')">Cancelar</button>
+        <button class="btn" id="btn-crear-cat" onclick="crearCatalogo()">Crear catálogo</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL CREAR ARTICULO -->
+  <div class="modal-fondo" id="modal-crear-art">
+    <div class="modal">
+      <h3>Nuevo artículo</h3>
+      <div class="modal-sub">Añade un producto al catálogo maestro</div>
+      <label>Nombre *</label>
+      <input id="art-nombre" type="text" placeholder="Ej: Paracetamol 500mg">
+      <div class="fila2">
+        <div>
+          <label>Referencia *</label>
+          <input id="art-ref" type="text" placeholder="Ej: PAR-500">
+        </div>
+        <div>
+          <label>Precio (€) *</label>
+          <input id="art-precio" type="number" step="0.01" placeholder="0.00">
+        </div>
+      </div>
+      <label>Categoría *</label>
+      <input id="art-cat" type="text" placeholder="Ej: Analgésicos">
+      <label>Descripción (opcional)</label>
+      <textarea id="art-desc" rows="2" placeholder="Breve descripción del producto"></textarea>
+      <div class="msg" id="crear-art-msg"></div>
+      <div class="modal-botones">
+        <button class="btn btn-sec" onclick="cerrarModal('modal-crear-art')">Cancelar</button>
+        <button class="btn" id="btn-crear-art" onclick="crearArticulo()">Crear artículo</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL AÑADIR ARTICULOS A CATALOGO -->
+  <div class="modal-fondo" id="modal-anadir-arts">
+    <div class="modal">
+      <h3>Añadir artículos al catálogo</h3>
+      <div class="modal-sub">Marca los productos que quieres incluir</div>
+      <div id="lista-arts-check" style="max-height: 320px; overflow-y: auto; border: 1px solid var(--borde); border-radius: 9px;">
+        <div class="cargando">Cargando...</div>
+      </div>
+      <div class="msg" id="anadir-msg"></div>
+      <div class="modal-botones">
+        <button class="btn btn-sec" onclick="cerrarModal('modal-anadir-arts')">Cancelar</button>
+        <button class="btn" id="btn-anadir" onclick="anadirArticulosSeleccionados()">Añadir seleccionados</button>
       </div>
     </div>
   </div>
@@ -218,25 +228,38 @@
   var TOKEN = localStorage.getItem("cp_token") || null;
   var USER = null;
   try { USER = JSON.parse(localStorage.getItem("cp_user") || "null"); } catch(e) { USER = null; }
+  var CAT_ACTUAL = null;
 
-  // ===== Navegacion vistas =====
   function mostrarApp() {
     document.getElementById("vista-login").style.display = "none";
     document.getElementById("vista-app").style.display = "block";
     if (USER) document.getElementById("lbl-user").textContent = USER.name + " (" + USER.role + ")";
-    irACatalogos();
+    navA('catalogos');
   }
   function mostrarLogin() {
     document.getElementById("vista-app").style.display = "none";
     document.getElementById("vista-login").style.display = "flex";
   }
-  function irACatalogos() {
+  function ocultarPantallas() {
+    document.getElementById("pantalla-catalogos").style.display = "none";
     document.getElementById("pantalla-detalle").style.display = "none";
-    document.getElementById("pantalla-catalogos").style.display = "block";
-    cargarCatalogos();
+    document.getElementById("pantalla-articulos").style.display = "none";
+  }
+  function navA(destino) {
+    ocultarPantallas();
+    document.getElementById("nav-catalogos").classList.remove("activo");
+    document.getElementById("nav-articulos").classList.remove("activo");
+    if (destino === 'catalogos') {
+      document.getElementById("pantalla-catalogos").style.display = "block";
+      document.getElementById("nav-catalogos").classList.add("activo");
+      cargarCatalogos();
+    } else if (destino === 'articulos') {
+      document.getElementById("pantalla-articulos").style.display = "block";
+      document.getElementById("nav-articulos").classList.add("activo");
+      cargarArticulos();
+    }
   }
 
-  // ===== Login =====
   async function hacerLogin() {
     var btn = document.getElementById("btn-login");
     var msg = document.getElementById("login-msg");
@@ -273,7 +296,6 @@
     mostrarLogin();
   }
 
-  // ===== Catalogos =====
   async function cargarCatalogos() {
     var cont = document.getElementById("lista-catalogos");
     cont.innerHTML = '<div class="cargando">Cargando catálogos...</div>';
@@ -284,15 +306,12 @@
       if (d.success && d.catalogs && d.catalogs.length > 0) {
         var html = '<div class="grid">';
         d.catalogs.forEach(function(c) {
-          var estado = c.is_draft
-            ? '<span class="tag bor">Borrador</span>'
-            : '<span class="tag pub">Publicado</span>';
+          var estado = c.is_draft ? '<span class="tag bor">Borrador</span>' : '<span class="tag pub">Publicado</span>';
           html += '<div class="cat-card" onclick="verCatalogo(' + c.id + ')">' +
             '<h3>' + escapar(c.name) + '</h3>' +
             '<div class="desc">' + escapar(c.description || "Sin descripción") + '</div>' +
             '<div class="meta">' + estado +
-            '<span class="tag">' + (c.article_count || 0) + ' artículos</span>' +
-            '</div></div>';
+            '<span class="tag">' + (c.article_count || 0) + ' artículos</span></div></div>';
         });
         html += '</div>';
         cont.innerHTML = html;
@@ -305,7 +324,8 @@
   }
 
   async function verCatalogo(id) {
-    document.getElementById("pantalla-catalogos").style.display = "none";
+    CAT_ACTUAL = id;
+    ocultarPantallas();
     document.getElementById("pantalla-detalle").style.display = "block";
     document.getElementById("det-nombre").textContent = "Cargando...";
     document.getElementById("det-desc").textContent = "";
@@ -322,12 +342,12 @@
           d.articles.forEach(function(a) {
             html += '<div class="articulo-fila"><div>' +
               '<div>' + escapar(a.name) + '</div>' +
-              '<div class="ref">' + escapar(a.reference || "") + '</div>' +
-              '</div><div class="precio">' + (a.pvpr ? a.pvpr + " €" : "-") + '</div></div>';
+              '<div class="ref">' + escapar(a.reference || "") + '</div></div>' +
+              '<div class="precio">' + (a.pvpr ? a.pvpr + " €" : "-") + '</div></div>';
           });
           cont.innerHTML = html;
         } else {
-          cont.innerHTML = '<div class="vacio">Este catálogo no tiene artículos todavía.</div>';
+          cont.innerHTML = '<div class="vacio">Este catálogo no tiene artículos.<br>Pulsa "+ Añadir artículos" para incluir productos.</div>';
         }
       } else {
         document.getElementById("det-articulos").innerHTML = '<div class="vacio">' + (d.error || "Error") + '</div>';
@@ -337,54 +357,153 @@
     }
   }
 
-  // ===== Crear catalogo =====
-  function abrirModalCrear() {
-    document.getElementById("nuevo-nombre").value = "";
-    document.getElementById("nuevo-desc").value = "";
-    var m = document.getElementById("crear-msg"); m.className = "msg"; m.style.display = "none";
-    document.getElementById("modal-crear").classList.add("abierto");
+  async function cargarArticulos() {
+    var cont = document.getElementById("lista-articulos-todos");
+    cont.innerHTML = '<div class="cargando">Cargando artículos...</div>';
+    try {
+      var r = await fetch(API + "/api/articles", { headers: { "Authorization": "Bearer " + TOKEN } });
+      if (r.status === 401) { cerrarSesion(); return; }
+      var d = await r.json();
+      var arts = d.articles || [];
+      if (arts.length > 0) {
+        var html = "";
+        arts.forEach(function(a) {
+          html += '<div class="articulo-fila"><div>' +
+            '<div>' + escapar(a.name) + '</div>' +
+            '<div class="ref">' + escapar(a.reference || "") + ' · ' + escapar(a.category || "") + '</div></div>' +
+            '<div class="precio">' + (a.pvpr ? a.pvpr + " €" : "-") + '</div></div>';
+        });
+        cont.innerHTML = html;
+      } else {
+        cont.innerHTML = '<div class="vacio">No hay artículos todavía.<br>Pulsa "+ Nuevo artículo" para crear el primero.</div>';
+      }
+    } catch (ex) {
+      cont.innerHTML = '<div class="vacio">Error al cargar: ' + ex.message + '</div>';
+    }
   }
-  function cerrarModalCrear() {
-    document.getElementById("modal-crear").classList.remove("abierto");
+
+  function cerrarModal(id) { document.getElementById(id).classList.remove("abierto"); }
+
+  function abrirModalCrearCat() {
+    document.getElementById("nuevo-cat-nombre").value = "";
+    document.getElementById("nuevo-cat-desc").value = "";
+    var m = document.getElementById("crear-cat-msg"); m.className = "msg"; m.style.display = "none";
+    document.getElementById("modal-crear-cat").classList.add("abierto");
   }
+  function abrirModalCrearArt() {
+    ["art-nombre","art-ref","art-precio","art-cat","art-desc"].forEach(function(i){ document.getElementById(i).value = ""; });
+    var m = document.getElementById("crear-art-msg"); m.className = "msg"; m.style.display = "none";
+    document.getElementById("modal-crear-art").classList.add("abierto");
+  }
+  async function abrirModalAnadirArts() {
+    var m = document.getElementById("anadir-msg"); m.className = "msg"; m.style.display = "none";
+    document.getElementById("modal-anadir-arts").classList.add("abierto");
+    var cont = document.getElementById("lista-arts-check");
+    cont.innerHTML = '<div class="cargando">Cargando artículos...</div>';
+    try {
+      var r = await fetch(API + "/api/articles", { headers: { "Authorization": "Bearer " + TOKEN } });
+      var d = await r.json();
+      var arts = d.articles || [];
+      if (arts.length > 0) {
+        var html = "";
+        arts.forEach(function(a) {
+          html += '<div class="art-check">' +
+            '<input type="checkbox" value="' + a.id + '" id="chk-' + a.id + '">' +
+            '<div class="info"><div class="nm">' + escapar(a.name) + '</div>' +
+            '<div class="rf">' + escapar(a.reference || "") + ' · ' + (a.pvpr ? a.pvpr + " €" : "-") + '</div></div></div>';
+        });
+        cont.innerHTML = html;
+      } else {
+        cont.innerHTML = '<div class="vacio">No hay artículos. Crea artículos primero en la pestaña Artículos.</div>';
+      }
+    } catch (ex) {
+      cont.innerHTML = '<div class="vacio">Error: ' + ex.message + '</div>';
+    }
+  }
+
   async function crearCatalogo() {
-    var btn = document.getElementById("btn-crear");
-    var msg = document.getElementById("crear-msg");
-    var nombre = document.getElementById("nuevo-nombre").value.trim();
-    var desc = document.getElementById("nuevo-desc").value.trim();
+    var btn = document.getElementById("btn-crear-cat");
+    var msg = document.getElementById("crear-cat-msg");
+    var nombre = document.getElementById("nuevo-cat-nombre").value.trim();
+    var desc = document.getElementById("nuevo-cat-desc").value.trim();
     msg.className = "msg"; msg.style.display = "none";
-    if (!nombre) {
-      msg.className = "msg error"; msg.textContent = "⚠️ El nombre es obligatorio";
+    if (!nombre) { msg.className = "msg error"; msg.textContent = "⚠️ El nombre es obligatorio"; return; }
+    btn.disabled = true; btn.textContent = "Creando...";
+    try {
+      var r = await fetch(API + "/api/catalogs", {
+        method: "POST", headers: { "Authorization": "Bearer " + TOKEN, "Content-Type": "application/json" },
+        body: JSON.stringify({ name: nombre, description: desc })
+      });
+      var d = await r.json();
+      if (d.success || d.catalog) { cerrarModal('modal-crear-cat'); cargarCatalogos(); }
+      else { msg.className = "msg error"; msg.textContent = "⚠️ " + (d.error || "No se pudo crear"); }
+    } catch (ex) { msg.className = "msg error"; msg.textContent = "❌ Error: " + ex.message; }
+    btn.disabled = false; btn.textContent = "Crear catálogo";
+  }
+
+  async function crearArticulo() {
+    var btn = document.getElementById("btn-crear-art");
+    var msg = document.getElementById("crear-art-msg");
+    var nombre = document.getElementById("art-nombre").value.trim();
+    var ref = document.getElementById("art-ref").value.trim();
+    var precio = document.getElementById("art-precio").value.trim();
+    var cat = document.getElementById("art-cat").value.trim();
+    var desc = document.getElementById("art-desc").value.trim();
+    msg.className = "msg"; msg.style.display = "none";
+    if (!nombre || !ref || !precio || !cat) {
+      msg.className = "msg error"; msg.textContent = "⚠️ Nombre, referencia, precio y categoría son obligatorios";
       return;
     }
     btn.disabled = true; btn.textContent = "Creando...";
     try {
-      var r = await fetch(API + "/api/catalogs", {
-        method: "POST",
-        headers: { "Authorization": "Bearer " + TOKEN, "Content-Type": "application/json" },
-        body: JSON.stringify({ name: nombre, description: desc })
+      var r = await fetch(API + "/api/articles", {
+        method: "POST", headers: { "Authorization": "Bearer " + TOKEN, "Content-Type": "application/json" },
+        body: JSON.stringify({ name: nombre, reference: ref, pvpr: Number(precio), category: cat, description: desc })
       });
       var d = await r.json();
-      if (d.success || d.catalog) {
-        cerrarModalCrear();
-        cargarCatalogos();
-      } else {
-        msg.className = "msg error"; msg.textContent = "⚠️ " + (d.error || "No se pudo crear");
-      }
-    } catch (ex) {
-      msg.className = "msg error"; msg.textContent = "❌ Error: " + ex.message;
-    }
-    btn.disabled = false; btn.textContent = "Crear catálogo";
+      if (d.success || d.article) { cerrarModal('modal-crear-art'); cargarArticulos(); }
+      else { msg.className = "msg error"; msg.textContent = "⚠️ " + (d.error || "No se pudo crear"); }
+    } catch (ex) { msg.className = "msg error"; msg.textContent = "❌ Error: " + ex.message; }
+    btn.disabled = false; btn.textContent = "Crear artículo";
   }
 
-  // ===== Util =====
+  async function anadirArticulosSeleccionados() {
+    var btn = document.getElementById("btn-anadir");
+    var msg = document.getElementById("anadir-msg");
+    msg.className = "msg"; msg.style.display = "none";
+    var checks = document.querySelectorAll('#lista-arts-check input[type=checkbox]:checked');
+    if (checks.length === 0) {
+      msg.className = "msg error"; msg.textContent = "⚠️ Selecciona al menos un artículo";
+      return;
+    }
+    btn.disabled = true; btn.textContent = "Añadiendo...";
+    var ok = 0, fallo = 0, orden = 1;
+    for (var i = 0; i < checks.length; i++) {
+      try {
+        var r = await fetch(API + "/api/catalogs/" + CAT_ACTUAL + "/articles", {
+          method: "POST", headers: { "Authorization": "Bearer " + TOKEN, "Content-Type": "application/json" },
+          body: JSON.stringify({ article_id: Number(checks[i].value), display_order: orden++, sheet_number: 1 })
+        });
+        if (r.ok) ok++; else fallo++;
+      } catch (ex) { fallo++; }
+    }
+    btn.disabled = false; btn.textContent = "Añadir seleccionados";
+    if (ok > 0) {
+      msg.className = "msg ok";
+      msg.textContent = "✅ " + ok + " artículo(s) añadido(s)" + (fallo ? " (" + fallo + " ya estaban o fallaron)" : "");
+      setTimeout(function(){ cerrarModal('modal-anadir-arts'); verCatalogo(CAT_ACTUAL); }, 1200);
+    } else {
+      msg.className = "msg error";
+      msg.textContent = "⚠️ No se añadió ninguno (puede que ya estuvieran en el catálogo)";
+    }
+  }
+
   function escapar(t) {
     var d = document.createElement("div");
     d.textContent = t == null ? "" : String(t);
     return d.innerHTML;
   }
 
-  // ===== Inicio =====
   if (TOKEN && USER) { mostrarApp(); } else { mostrarLogin(); }
   document.getElementById("in-pass").addEventListener("keydown", function(e) {
     if (e.key === "Enter") hacerLogin();
