@@ -1,6 +1,6 @@
 /**
  * CatalogPRO - Backend API
- * Servidor Express principal - Etapa 4 (eliminar laminas + base compartir)
+ * Servidor Express principal - Etapa 4 (eliminar laminas + arreglador tablas)
  */
 
 import express, { Express, Request, Response, NextFunction } from 'express';
@@ -285,7 +285,6 @@ app.delete('/api/catalogs/:id', verifyToken, async (req: AuthRequest, res: Respo
 // RUTAS DE ELIMINAR LAMINAS (doble confirmacion, protegidas)
 // ============================================================================
 
-// Ver informacion de una lamina antes de eliminar
 app.get('/api/catalogs/:id/sheets/:num', verifyToken, async (req: AuthRequest, res: Response) => {
   try {
     const info = await sheetDeleteService.getSheetInfo(Number(req.params.id), Number(req.params.num));
@@ -296,7 +295,6 @@ app.get('/api/catalogs/:id/sheets/:num', verifyToken, async (req: AuthRequest, r
   }
 });
 
-// PASO 1: solicitar eliminacion de una lamina (devuelve codigo de confirmacion)
 app.post('/api/catalogs/:id/sheets/:num/delete-request', verifyToken, async (req: AuthRequest, res: Response) => {
   try {
     if (!req.user) { res.status(401).json({ success: false, error: 'Unauthorized' }); return; }
@@ -309,7 +307,6 @@ app.post('/api/catalogs/:id/sheets/:num/delete-request', verifyToken, async (req
   }
 });
 
-// PASO 2: confirmar eliminacion (requiere el codigo del paso 1)
 app.post('/api/catalogs/delete-confirm', verifyToken, async (req: AuthRequest, res: Response) => {
   try {
     if (!req.user) { res.status(401).json({ success: false, error: 'Unauthorized' }); return; }
@@ -322,7 +319,6 @@ app.post('/api/catalogs/delete-confirm', verifyToken, async (req: AuthRequest, r
   }
 });
 
-// Cancelar una solicitud de eliminacion
 app.post('/api/catalogs/delete-cancel', verifyToken, async (req: AuthRequest, res: Response) => {
   try {
     if (!req.user) { res.status(401).json({ success: false, error: 'Unauthorized' }); return; }
@@ -334,7 +330,6 @@ app.post('/api/catalogs/delete-cancel', verifyToken, async (req: AuthRequest, re
   }
 });
 
-// Ver solicitudes de eliminacion pendientes del usuario
 app.get('/api/catalogs/delete-requests/pending', verifyToken, async (req: AuthRequest, res: Response) => {
   try {
     if (!req.user) { res.status(401).json({ success: false, error: 'Unauthorized' }); return; }
@@ -478,6 +473,41 @@ async function crearDatosEjemplo(): Promise<void> {
   }
 }
 
+/**
+ * Asegura que las tablas de la migracion 002 (compartir/eliminar) existen.
+ * Se ejecuta SIEMPRE al arrancar. Si ya existen, no hace nada.
+ * Esto cubre el caso de bases de datos creadas ANTES de la Etapa 4
+ * (donde la estructura ya existia y la migracion 002 no se re-ejecutaba).
+ * NO toca usuarios, articulos ni catalogos: solo anade lo que falte.
+ */
+async function asegurarTablasEtapa4(): Promise<void> {
+  try {
+    const existe = await pool.query(
+      "SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name='catalog_delete_requests') AS e"
+    );
+    if (existe.rows[0].e) {
+      console.log('Tablas Etapa 4 ya existen, no se recrean');
+      return;
+    }
+    console.log('Faltan tablas Etapa 4: creandolas (sin tocar datos existentes)...');
+    const migDir = path.join(__dirname, 'db', 'migrations');
+    const ruta = path.join(migDir, '002_catalog_sharing.sql');
+    if (fs.existsSync(ruta)) {
+      const sql = fs.readFileSync(ruta, 'utf8');
+      try {
+        await pool.query(sql);
+        console.log('Tablas Etapa 4 creadas correctamente (compartir/eliminar)');
+      } catch (e) {
+        console.error('Aviso creando tablas Etapa 4:', (e as Error).message);
+      }
+    } else {
+      console.log('No se encontro 002_catalog_sharing.sql');
+    }
+  } catch (error) {
+    console.error('Error asegurando tablas Etapa 4:', (error as Error).message);
+  }
+}
+
 async function startServer() {
   const bdOk = await esperarBaseDatos();
   if (!bdOk) {
@@ -487,6 +517,7 @@ async function startServer() {
     await prepararBaseDatos();
     await crearUsuariosIniciales();
     await crearDatosEjemplo();
+    await asegurarTablasEtapa4();
   }
   app.listen(PORT, '0.0.0.0', () => {
     console.log('');
