@@ -5,6 +5,7 @@
 
 import { Pool } from 'pg';
 import axios from 'axios';
+import nodemailer from 'nodemailer';
 
 interface ShareInput {
   catalog_id: number;
@@ -130,7 +131,7 @@ export class ShareService {
     const { catalog_id, sheet_numbers, recipient_phone, recipient_name, message } = input;
 
     if (!recipient_phone) {
-      throw new Error('Phone number is required');
+      throw new Error('Phone recipient is required');
     }
 
     if (!this.isValidPhone(recipient_phone)) {
@@ -138,7 +139,6 @@ export class ShareService {
     }
 
     try {
-      // Obtener información del catálogo
       const catalogResult = await this.db.query(
         'SELECT id, name, version FROM catalogs WHERE id = $1',
         [catalog_id]
@@ -150,17 +150,14 @@ export class ShareService {
 
       const catalog = catalogResult.rows[0];
 
-      // Obtener láminas
       const sheets = await this.getCatalogSheets(catalog_id, sheet_numbers);
 
       if (sheets.length === 0) {
         throw new Error('No sheets found to send');
       }
 
-      // Preparar mensaje WhatsApp
       const whatsappMessage = this.buildWhatsAppMessage(catalog, sheets, recipient_name, message);
 
-      // Enviar WhatsApp
       const whatsappResult = await this.sendWhatsApp({
         to: recipient_phone,
         message: whatsappMessage,
@@ -170,7 +167,6 @@ export class ShareService {
         throw new Error(`WhatsApp send failed: ${whatsappResult.error}`);
       }
 
-      // Registrar en BD
       const logResult = await this.db.query(
         `INSERT INTO catalog_shares 
          (user_id, catalog_id, share_type, recipient, status, sheet_numbers, created_at) 
@@ -179,7 +175,6 @@ export class ShareService {
         [userId, catalog_id, 'whatsapp', recipient_phone, 'sent', JSON.stringify(sheet_numbers || [])]
       );
 
-      // Auditoría
       await this.db.query(
         'INSERT INTO audit_log (user_id, action, table_name, record_id, new_data, timestamp) VALUES ($1, $2, $3, $4, $5, NOW())',
         [
@@ -197,7 +192,6 @@ export class ShareService {
 
       return logResult.rows[0];
     } catch (error) {
-      // Registrar error
       await this.db.query(
         `INSERT INTO catalog_shares 
          (user_id, catalog_id, share_type, recipient, status, error_msg, created_at) 
@@ -214,7 +208,7 @@ export class ShareService {
    */
   private async getCatalogSheets(catalogId: number, sheetNumbers?: number[]): Promise<any[]> {
     let query = `
-      SELECT DISTINCT ca.sheet_number, 
+      SELECT ca.sheet_number, 
              COUNT(ca.id) as article_count,
              json_agg(json_build_object(
                'id', ca.id,
@@ -245,38 +239,47 @@ export class ShareService {
    * Construir contenido HTML del email
    */
   private buildEmailContent(catalog: any, sheets: any[], recipientName: string, message?: string): string {
-    const sheetsHtml = sheets
-      .map(
-        (sheet) => `
-      <div style="margin-bottom: 30px; border: 1px solid #ddd; padding: 20px; border-radius: 8px;">
-        <h3 style="color: #1F4E78; margin-bottom: 15px;">Lámina ${sheet.sheet_number}</h3>
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px;">
-          ${sheet.articles
-            .map(
-              (article: any) => `
-            <div style="text-align: center;">
-              ${article.image_path ? `<img src="${article.image_path}" style="max-width: 100%; height: auto; border-radius: 4px;" alt="${article.name}" />` : ''}
-              <p style="font-weight: bold; margin: 10px 0 5px 0;">${article.name}</p>
-              <p style="font-size: 12px; color: #666; margin: 0;">Ref: ${article.reference}</p>
-              <p style="font-size: 14px; color: #1F4E78; font-weight: bold;">€${article.pvpr}</p>
-            </div>
-          `
-            )
-            .join('')}
+    let sheetsHtml = '';
+
+    sheets.forEach((sheet: any) => {
+      let articlesHtml = '';
+      sheet.articles.forEach((article: any) => {
+        articlesHtml += `
+          <tr>
+            <td style="padding: 10px; border-bottom: 1px solid #eee;">${article.name}</td>
+            <td style="padding: 10px; border-bottom: 1px solid #eee;">${article.reference}</td>
+            <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: right;">€${article.pvpr || '-'}</td>
+          </tr>
+        `;
+      });
+
+      sheetsHtml += `
+        <div style="margin-bottom: 30px; background: #fff; border-radius: 8px; padding: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+          <h3 style="color: #17a2b8; margin-top: 0;">Lámina ${sheet.sheet_number}</h3>
+          <table style="width: 100%; border-collapse: collapse;">
+            <thead>
+              <tr style="background: #f8f9fa;">
+                <th style="padding: 10px; text-align: left;">Artículo</th>
+                <th style="padding: 10px; text-align: left;">Referencia</th>
+                <th style="padding: 10px; text-align: right;">PVP</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${articlesHtml}
+            </tbody>
+          </table>
         </div>
-      </div>
-    `
-      )
-      .join('');
+      `;
+    });
 
     return `
       <!DOCTYPE html>
       <html>
       <head>
-        <meta charset="UTF-8">
+        <meta charset="utf-8">
         <style>
-          body { font-family: Arial, sans-serif; color: #333; line-height: 1.6; }
-          .header { background: linear-gradient(135deg, #1F4E78 0%, #2E5C8A 100%); color: white; padding: 30px; text-align: center; border-radius: 8px; margin-bottom: 30px; }
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; background: #f4f4f4; padding: 20px; }
+          .header { background: linear-gradient(135deg, #17a2b8 0%, #138496 100%); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
           .header h1 { margin: 0; font-size: 28px; }
           .content { max-width: 800px; margin: 0 auto; }
           .footer { text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd; color: #666; font-size: 12px; }
@@ -346,26 +349,42 @@ export class ShareService {
   }
 
   /**
-   * Enviar email (implementación genérica)
+   * Enviar email por SMTP (Gmail), mismo método que el Gestor PNT
    */
   private async sendEmail(input: { to: string; subject: string; html: string }): Promise<{ success: boolean; error?: string }> {
     try {
-      // Aquí iría la integración con SendGrid, Mailgun, etc.
-      // Por ahora es un placeholder
-      console.log(`📧 Sending email to ${input.to} with subject: ${input.subject}`);
+      // Envio real por SMTP (Gmail), mismo metodo que el Gestor PNT.
+      // Railway permite SMTP en plan Pro. Variables: SMTP_HOST/PORT/USER/PASS/FROM.
+      const host = process.env.SMTP_HOST || 'smtp.gmail.com';
+      const port = Number(process.env.SMTP_PORT) || 587;
+      const secure = String(process.env.SMTP_SECURE || 'false') === 'true';
+      const user = process.env.SMTP_USER;
+      const pass = process.env.SMTP_PASS;
+      const from = process.env.SMTP_FROM || user;
 
-      // En producción, descomentar y configurar:
-      // const response = await axios.post(`https://api.sendgrid.com/v3/mail/send`, {
-      //   personalizations: [{ to: [{ email: input.to }] }],
-      //   from: { email: process.env.SENDGRID_FROM_EMAIL },
-      //   subject: input.subject,
-      //   content: [{ type: 'text/html', value: input.html }],
-      // }, {
-      //   headers: { 'Authorization': `Bearer ${process.env.SENDGRID_API_KEY}` }
-      // });
+      if (!user || !pass) {
+        console.error('SMTP no configurado: faltan SMTP_USER o SMTP_PASS');
+        return { success: false, error: 'SMTP no configurado (faltan credenciales)' };
+      }
 
+      const transporter = nodemailer.createTransport({
+        host,
+        port,
+        secure, // true para 465, false para 587
+        auth: { user, pass },
+      });
+
+      const info = await transporter.sendMail({
+        from,
+        to: input.to,
+        subject: input.subject,
+        html: input.html,
+      });
+
+      console.log(`Email enviado a ${input.to} (id: ${info.messageId})`);
       return { success: true };
     } catch (error) {
+      console.error('Error enviando email:', (error as Error).message);
       return {
         success: false,
         error: (error as Error).message,
@@ -428,10 +447,11 @@ export class ShareService {
   async getShareHistory(catalogId: number, limit: number = 50, offset: number = 0): Promise<ShareLog[]> {
     try {
       const result = await this.db.query(
-        `SELECT id, user_id, catalog_id, share_type, recipient, status, created_at 
-         FROM catalog_shares 
-         WHERE catalog_id = $1 
-         ORDER BY created_at DESC 
+        `SELECT cs.*, u.name as user_name 
+         FROM catalog_shares cs 
+         LEFT JOIN users u ON cs.user_id = u.id 
+         WHERE cs.catalog_id = $1 
+         ORDER BY cs.created_at DESC 
          LIMIT $2 OFFSET $3`,
         [catalogId, limit, offset]
       );
