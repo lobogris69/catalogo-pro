@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CatalogPRO - LOMHIFAR</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --azul: #17a2b8;
+    --azul-osc: #138496;
+    --fondo: #0f1117;
+    --panel: #1a1d27;
+    --borde: #2a2e3c;
+    --texto: #e7e9ee;
+    --gris: #8b90a0;
+    --verde: #28a745;
+    --rojo: #dc3545;
+  }
+  body {
+    font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+    background: var(--fondo);
+    color: var(--texto);
+    min-height: 100vh;
+  }
+  #root { min-height: 100vh; }
+
+  /* LOGIN */
+  .login-wrap {
+    display: flex; align-items: center; justify-content: center;
+    min-height: 100vh; padding: 20px;
+  }
+  .login-box {
+    background: var(--panel);
+    border: 1px solid var(--borde);
+    border-radius: 16px;
+    padding: 40px;
+    width: 100%; max-width: 420px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+  }
+  .logo { text-align: center; margin-bottom: 28px; }
+  .logo h1 { font-size: 28px; color: var(--azul); }
+  .logo p { color: var(--gris); font-size: 13px; margin-top: 4px; }
+  label { display: block; font-size: 13px; color: #b8bcc8; margin: 16px 0 6px; }
+  input {
+    width: 100%; padding: 13px 15px;
+    background: var(--fondo); border: 1px solid var(--borde);
+    border-radius: 9px; color: #fff; font-size: 15px;
+  }
+  input:focus { outline: none; border-color: var(--azul); }
+  .btn {
+    width: 100%; margin-top: 24px; padding: 14px;
+    background: var(--azul); color: #fff; border: none;
+    border-radius: 9px; font-size: 15px; font-weight: 600; cursor: pointer;
+  }
+  .btn:hover { background: var(--azul-osc); }
+  .btn:disabled { opacity: 0.6; cursor: wait; }
+  .msg { margin-top: 18px; padding: 13px; border-radius: 9px; font-size: 14px; display: none; }
+  .msg.error { background: #3a1620; color: #f08098; border: 1px solid #a52f44; display: block; }
+  .hint { margin-top: 20px; font-size: 12px; color: #6b7080; text-align: center; line-height: 1.7; }
+
+  /* APP (tras login) */
+  .topbar {
+    background: var(--panel);
+    border-bottom: 1px solid var(--borde);
+    padding: 16px 24px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .topbar h1 { font-size: 19px; color: var(--azul); }
+  .topbar .user { font-size: 13px; color: var(--gris); }
+  .topbar button {
+    background: var(--borde); color: var(--texto); border: none;
+    padding: 8px 14px; border-radius: 7px; font-size: 13px; cursor: pointer; margin-left: 14px;
+  }
+  .topbar button:hover { background: #363b4d; }
+  .contenido { max-width: 1000px; margin: 0 auto; padding: 30px 24px; }
+  .bienvenida {
+    background: var(--panel); border: 1px solid var(--borde);
+    border-radius: 14px; padding: 30px; text-align: center;
+  }
+  .bienvenida h2 { font-size: 22px; margin-bottom: 10px; }
+  .bienvenida p { color: var(--gris); margin-bottom: 8px; }
+  .badge-ok {
+    display: inline-block; background: #10331f; color: #5ed98a;
+    border: 1px solid #1f7a44; padding: 6px 14px; border-radius: 20px;
+    font-size: 13px; margin-top: 16px;
+  }
+  .proximo {
+    margin-top: 24px; padding: 18px; background: var(--fondo);
+    border: 1px dashed var(--borde); border-radius: 10px;
+    font-size: 13px; color: var(--gris); text-align: left;
+  }
+  .proximo b { color: var(--texto); }
+</style>
+</head>
+<body>
+<div id="root">
+  <!-- LOGIN -->
+  <div class="login-wrap" id="vista-login">
+    <div class="login-box">
+      <div class="logo">
+        <h1>🏥 CatalogPRO</h1>
+        <p>Gestión de Catálogos Digitales · LOMHIFAR</p>
+      </div>
+      <label>Email</label>
+      <input id="in-email" type="email" placeholder="usuario@lomhifar.com" value="admin@lomhifar.com" autocomplete="username">
+      <label>Contraseña</label>
+      <input id="in-pass" type="password" placeholder="••••••••" autocomplete="current-password">
+      <button class="btn" id="btn-login" onclick="hacerLogin()">Iniciar sesión</button>
+      <div class="msg" id="login-msg"></div>
+      <div class="hint">
+        Acceso para personal autorizado de LOMHIFAR S.L.
+      </div>
+    </div>
+  </div>
+
+  <!-- APP (oculta hasta login) -->
+  <div id="vista-app" style="display:none;">
+    <div class="topbar">
+      <h1>🏥 CatalogPRO</h1>
+      <div>
+        <span class="user" id="lbl-user"></span>
+        <button onclick="cerrarSesion()">Cerrar sesión</button>
+      </div>
+    </div>
+    <div class="contenido">
+      <div class="bienvenida">
+        <h2>Bienvenido a CatalogPRO</h2>
+        <p>El sistema está conectado y funcionando correctamente.</p>
+        <div class="badge-ok">✅ Sesión activa · Backend conectado</div>
+        <div class="proximo">
+          <b>🚀 En construcción (próximas fases):</b><br><br>
+          • Panel de catálogos (ver, crear, gestionar)<br>
+          • Gestión de artículos<br>
+          • Eliminar láminas con doble confirmación<br>
+          • Compartir catálogos por email<br><br>
+          El motor (backend) ya está completo y probado. Estamos montando
+          la interfaz visual paso a paso.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // El frontend se sirve desde el mismo backend, asi que la API es el mismo origen.
+  var API = "";
+  var TOKEN = localStorage.getItem("cp_token") || null;
+  var USER = null;
+  try { USER = JSON.parse(localStorage.getItem("cp_user") || "null"); } catch(e) { USER = null; }
+
+  function mostrarApp() {
+    document.getElementById("vista-login").style.display = "none";
+    document.getElementById("vista-app").style.display = "block";
+    if (USER) {
+      document.getElementById("lbl-user").textContent = USER.name + " (" + USER.role + ")";
+    }
+  }
+
+  function mostrarLogin() {
+    document.getElementById("vista-app").style.display = "none";
+    document.getElementById("vista-login").style.display = "flex";
+  }
+
+  async function hacerLogin() {
+    var btn = document.getElementById("btn-login");
+    var msg = document.getElementById("login-msg");
+    var email = document.getElementById("in-email").value.trim();
+    var pass = document.getElementById("in-pass").value;
+    msg.className = "msg";
+    msg.style.display = "none";
+    btn.disabled = true; btn.textContent = "Entrando...";
+    try {
+      var r = await fetch(API + "/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email, password: pass })
+      });
+      var d = await r.json();
+      if (d.success && d.token) {
+        TOKEN = d.token;
+        USER = d.user;
+        localStorage.setItem("cp_token", TOKEN);
+        localStorage.setItem("cp_user", JSON.stringify(USER));
+        mostrarApp();
+      } else {
+        msg.className = "msg error";
+        msg.textContent = "⚠️ " + (d.error || "Email o contraseña incorrectos");
+      }
+    } catch (ex) {
+      msg.className = "msg error";
+      msg.textContent = "❌ No se pudo conectar con el servidor. Inténtalo de nuevo.";
+    }
+    btn.disabled = false; btn.textContent = "Iniciar sesión";
+  }
+
+  function cerrarSesion() {
+    TOKEN = null; USER = null;
+    localStorage.removeItem("cp_token");
+    localStorage.removeItem("cp_user");
+    document.getElementById("in-pass").value = "";
+    mostrarLogin();
+  }
+
+  // Al cargar: si ya hay sesion guardada, entrar directo
+  if (TOKEN && USER) {
+    mostrarApp();
+  } else {
+    mostrarLogin();
+  }
+
+  // Permitir Enter en el campo contraseña
+  document.getElementById("in-pass").addEventListener("keydown", function(e) {
+    if (e.key === "Enter") hacerLogin();
+  });
+</script>
+</body>
+</html>
