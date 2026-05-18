@@ -142,7 +142,11 @@
         <button class="volver" onclick="navA('catalogos')">← Volver a catálogos</button>
         <div class="cab">
           <div><h2 id="det-nombre">Catálogo</h2><div class="sub" id="det-desc"></div></div>
-          <button class="btn" onclick="abrirModalAnadirArts()">+ Añadir artículos</button>
+          <div style="display:flex; gap:10px; flex-wrap:wrap;">
+            <button class="btn btn-sec" onclick="abrirModalEliminar()">🗑️ Eliminar lámina</button>
+            <button class="btn btn-sec" onclick="abrirModalEmail()">✉️ Enviar por email</button>
+            <button class="btn" onclick="abrirModalAnadirArts()">+ Añadir artículos</button>
+          </div>
         </div>
         <div id="det-articulos" class="lista-articulos"><div class="cargando">Cargando...</div></div>
       </div>
@@ -221,6 +225,62 @@
     </div>
   </div>
 
+  <!-- MODAL ENVIAR POR EMAIL -->
+  <div class="modal-fondo" id="modal-email">
+    <div class="modal">
+      <h3>✉️ Enviar catálogo por email</h3>
+      <div class="modal-sub">Se enviará el catálogo completo al destinatario</div>
+      <label>Email del destinatario *</label>
+      <input id="em-dest" type="email" placeholder="cliente@farmacia.com">
+      <label>Nombre del destinatario</label>
+      <input id="em-nombre" type="text" placeholder="Ej: Farmacia Central">
+      <label>Mensaje (opcional)</label>
+      <textarea id="em-msg" rows="3" placeholder="Mensaje que acompañará al catálogo"></textarea>
+      <div class="msg" id="email-msg"></div>
+      <div class="modal-botones">
+        <button class="btn btn-sec" onclick="cerrarModal('modal-email')">Cancelar</button>
+        <button class="btn" id="btn-enviar-email" onclick="enviarPorEmail()">Enviar email</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL ELIMINAR LAMINA (doble confirmacion) -->
+  <div class="modal-fondo" id="modal-eliminar">
+    <div class="modal">
+      <h3>🗑️ Eliminar lámina</h3>
+      <div class="modal-sub">Esta acción borra de forma permanente todos los artículos de una lámina del catálogo</div>
+
+      <!-- Paso 1: elegir lamina -->
+      <div id="elim-paso1">
+        <label>Número de lámina a eliminar</label>
+        <input id="elim-num" type="number" value="1" min="1">
+        <div style="background:#3a1620; border:1px solid #a52f44; color:#f08098; padding:12px; border-radius:9px; font-size:13px; margin-top:14px;">
+          ⚠️ Atención: esto eliminará TODOS los artículos de esa lámina. La acción es permanente.
+        </div>
+        <div class="msg" id="elim-msg1"></div>
+        <div class="modal-botones">
+          <button class="btn btn-sec" onclick="cerrarModal('modal-eliminar')">Cancelar</button>
+          <button class="btn" id="btn-elim-solicitar" onclick="solicitarEliminar()">Continuar</button>
+        </div>
+      </div>
+
+      <!-- Paso 2: confirmar -->
+      <div id="elim-paso2" style="display:none;">
+        <div style="background:#3a2e10; border:1px solid #7a6020; color:#e0c060; padding:14px; border-radius:9px; font-size:14px; margin-bottom:8px;">
+          <div id="elim-resumen"></div>
+        </div>
+        <div style="background:#3a1620; border:1px solid #a52f44; color:#f08098; padding:12px; border-radius:9px; font-size:13px; margin:14px 0;">
+          ⚠️ ÚLTIMA CONFIRMACIÓN. Si pulsas "Confirmar eliminación" se borrará y NO se podrá deshacer.
+        </div>
+        <div class="msg" id="elim-msg2"></div>
+        <div class="modal-botones">
+          <button class="btn btn-sec" onclick="cancelarEliminar()">Cancelar</button>
+          <button class="btn" id="btn-elim-confirmar" onclick="confirmarEliminar()" style="background:var(--rojo);">Confirmar eliminación</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
 </div>
 
 <script>
@@ -295,8 +355,7 @@
     document.getElementById("in-pass").value = "";
     mostrarLogin();
   }
-
-  async function cargarCatalogos() {
+ async function cargarCatalogos() {
     var cont = document.getElementById("lista-catalogos");
     cont.innerHTML = '<div class="cargando">Cargando catálogos...</div>';
     try {
@@ -496,6 +555,124 @@
       msg.className = "msg error";
       msg.textContent = "⚠️ No se añadió ninguno (puede que ya estuvieran en el catálogo)";
     }
+  }
+
+  // ===== Enviar por email =====
+  function abrirModalEmail() {
+    document.getElementById("em-dest").value = "";
+    document.getElementById("em-nombre").value = "";
+    document.getElementById("em-msg").value = "";
+    var m = document.getElementById("email-msg"); m.className = "msg"; m.style.display = "none";
+    document.getElementById("modal-email").classList.add("abierto");
+  }
+  async function enviarPorEmail() {
+    var btn = document.getElementById("btn-enviar-email");
+    var msg = document.getElementById("email-msg");
+    var dest = document.getElementById("em-dest").value.trim();
+    var nombre = document.getElementById("em-nombre").value.trim();
+    var mensaje = document.getElementById("em-msg").value.trim();
+    msg.className = "msg"; msg.style.display = "none";
+    if (!dest) { msg.className = "msg error"; msg.textContent = "⚠️ El email del destinatario es obligatorio"; return; }
+    btn.disabled = true; btn.textContent = "Enviando... (puede tardar 15s)";
+    try {
+      var r = await fetch(API + "/api/catalogs/" + CAT_ACTUAL + "/share/email", {
+        method: "POST", headers: { "Authorization": "Bearer " + TOKEN, "Content-Type": "application/json" },
+        body: JSON.stringify({ recipient_email: dest, recipient_name: nombre || "Cliente", message: mensaje })
+      });
+      var d = await r.json();
+      if (d.success) {
+        msg.className = "msg ok";
+        msg.textContent = "✅ Email enviado a " + dest + ". Revisa que llegue (y la carpeta SPAM la primera vez).";
+        setTimeout(function(){ cerrarModal('modal-email'); }, 2500);
+      } else {
+        msg.className = "msg error";
+        msg.textContent = "⚠️ " + (d.error || "No se pudo enviar");
+      }
+    } catch (ex) {
+      msg.className = "msg error"; msg.textContent = "❌ Error: " + ex.message;
+    }
+    btn.disabled = false; btn.textContent = "Enviar email";
+  }
+
+  // ===== Eliminar lamina (doble confirmacion) =====
+  var ELIM_REQUEST_ID = null;
+  function abrirModalEliminar() {
+    document.getElementById("elim-num").value = "1";
+    document.getElementById("elim-paso1").style.display = "block";
+    document.getElementById("elim-paso2").style.display = "none";
+    var m1 = document.getElementById("elim-msg1"); m1.className = "msg"; m1.style.display = "none";
+    var m2 = document.getElementById("elim-msg2"); m2.className = "msg"; m2.style.display = "none";
+    ELIM_REQUEST_ID = null;
+    document.getElementById("modal-eliminar").classList.add("abierto");
+  }
+  async function solicitarEliminar() {
+    var btn = document.getElementById("btn-elim-solicitar");
+    var msg = document.getElementById("elim-msg1");
+    var num = document.getElementById("elim-num").value.trim();
+    msg.className = "msg"; msg.style.display = "none";
+    if (!num || Number(num) < 1) { msg.className = "msg error"; msg.textContent = "⚠️ Indica un número de lámina válido"; return; }
+    btn.disabled = true; btn.textContent = "Comprobando...";
+    try {
+      var ri = await fetch(API + "/api/catalogs/" + CAT_ACTUAL + "/sheets/" + num, { headers: { "Authorization": "Bearer " + TOKEN } });
+      var di = await ri.json();
+      if (!di.success || !di.sheet) {
+        msg.className = "msg error"; msg.textContent = "⚠️ La lámina " + num + " no existe en este catálogo";
+        btn.disabled = false; btn.textContent = "Continuar"; return;
+      }
+      var rr = await fetch(API + "/api/catalogs/" + CAT_ACTUAL + "/sheets/" + num + "/delete-request", {
+        method: "POST", headers: { "Authorization": "Bearer " + TOKEN, "Content-Type": "application/json" }, body: "{}"
+      });
+      var dr = await rr.json();
+      if (dr.success && dr.delete_request) {
+        ELIM_REQUEST_ID = dr.delete_request.delete_request_id;
+        var nart = di.sheet.article_count || (di.sheet.articles ? di.sheet.articles.length : "?");
+        document.getElementById("elim-resumen").innerHTML =
+          "Vas a eliminar la <b>lámina " + escapar(num) + "</b> del catálogo, con <b>" + escapar(nart) + " artículo(s)</b>.";
+        document.getElementById("elim-paso1").style.display = "none";
+        document.getElementById("elim-paso2").style.display = "block";
+      } else {
+        msg.className = "msg error"; msg.textContent = "⚠️ " + (dr.error || "No se pudo iniciar el borrado");
+      }
+    } catch (ex) {
+      msg.className = "msg error"; msg.textContent = "❌ Error: " + ex.message;
+    }
+    btn.disabled = false; btn.textContent = "Continuar";
+  }
+  async function cancelarEliminar() {
+    if (ELIM_REQUEST_ID) {
+      try {
+        await fetch(API + "/api/catalogs/delete-cancel", {
+          method: "POST", headers: { "Authorization": "Bearer " + TOKEN, "Content-Type": "application/json" },
+          body: JSON.stringify({ delete_request_id: ELIM_REQUEST_ID })
+        });
+      } catch (ex) {}
+    }
+    ELIM_REQUEST_ID = null;
+    cerrarModal('modal-eliminar');
+  }
+  async function confirmarEliminar() {
+    var btn = document.getElementById("btn-elim-confirmar");
+    var msg = document.getElementById("elim-msg2");
+    msg.className = "msg"; msg.style.display = "none";
+    if (!ELIM_REQUEST_ID) { msg.className = "msg error"; msg.textContent = "⚠️ Sesión de borrado caducada, empieza de nuevo"; return; }
+    btn.disabled = true; btn.textContent = "Eliminando...";
+    try {
+      var r = await fetch(API + "/api/catalogs/delete-confirm", {
+        method: "POST", headers: { "Authorization": "Bearer " + TOKEN, "Content-Type": "application/json" },
+        body: JSON.stringify({ delete_request_id: ELIM_REQUEST_ID })
+      });
+      var d = await r.json();
+      if (d.success) {
+        msg.className = "msg ok"; msg.textContent = "✅ Lámina eliminada correctamente";
+        ELIM_REQUEST_ID = null;
+        setTimeout(function(){ cerrarModal('modal-eliminar'); verCatalogo(CAT_ACTUAL); }, 1400);
+      } else {
+        msg.className = "msg error"; msg.textContent = "⚠️ " + (d.error || "No se pudo eliminar");
+      }
+    } catch (ex) {
+      msg.className = "msg error"; msg.textContent = "❌ Error: " + ex.message;
+    }
+    btn.disabled = false; btn.textContent = "Confirmar eliminación";
   }
 
   function escapar(t) {
