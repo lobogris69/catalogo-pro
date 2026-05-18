@@ -26,47 +26,41 @@
   #root { min-height: 100vh; }
 
   /* LOGIN */
-  .login-wrap {
-    display: flex; align-items: center; justify-content: center;
-    min-height: 100vh; padding: 20px;
-  }
+  .login-wrap { display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 20px; }
   .login-box {
-    background: var(--panel);
-    border: 1px solid var(--borde);
-    border-radius: 16px;
-    padding: 40px;
-    width: 100%; max-width: 420px;
-    box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+    background: var(--panel); border: 1px solid var(--borde); border-radius: 16px;
+    padding: 40px; width: 100%; max-width: 420px; box-shadow: 0 20px 60px rgba(0,0,0,0.4);
   }
   .logo { text-align: center; margin-bottom: 28px; }
   .logo h1 { font-size: 28px; color: var(--azul); }
   .logo p { color: var(--gris); font-size: 13px; margin-top: 4px; }
   label { display: block; font-size: 13px; color: #b8bcc8; margin: 16px 0 6px; }
-  input {
-    width: 100%; padding: 13px 15px;
-    background: var(--fondo); border: 1px solid var(--borde);
-    border-radius: 9px; color: #fff; font-size: 15px;
+  input, textarea {
+    width: 100%; padding: 13px 15px; background: var(--fondo);
+    border: 1px solid var(--borde); border-radius: 9px; color: #fff;
+    font-size: 15px; font-family: inherit;
   }
-  input:focus { outline: none; border-color: var(--azul); }
+  input:focus, textarea:focus { outline: none; border-color: var(--azul); }
   .btn {
-    width: 100%; margin-top: 24px; padding: 14px;
-    background: var(--azul); color: #fff; border: none;
+    padding: 13px 20px; background: var(--azul); color: #fff; border: none;
     border-radius: 9px; font-size: 15px; font-weight: 600; cursor: pointer;
   }
   .btn:hover { background: var(--azul-osc); }
   .btn:disabled { opacity: 0.6; cursor: wait; }
+  .btn-full { width: 100%; margin-top: 24px; }
+  .btn-sec { background: var(--borde); }
+  .btn-sec:hover { background: #363b4d; }
   .msg { margin-top: 18px; padding: 13px; border-radius: 9px; font-size: 14px; display: none; }
   .msg.error { background: #3a1620; color: #f08098; border: 1px solid #a52f44; display: block; }
+  .msg.ok { background: #10331f; color: #5ed98a; border: 1px solid #1f7a44; display: block; }
   .hint { margin-top: 20px; font-size: 12px; color: #6b7080; text-align: center; line-height: 1.7; }
 
-  /* APP (tras login) */
+  /* APP */
   .topbar {
-    background: var(--panel);
-    border-bottom: 1px solid var(--borde);
-    padding: 16px 24px;
-    display: flex; align-items: center; justify-content: space-between;
+    background: var(--panel); border-bottom: 1px solid var(--borde);
+    padding: 16px 24px; display: flex; align-items: center; justify-content: space-between;
   }
-  .topbar h1 { font-size: 19px; color: var(--azul); }
+  .topbar h1 { font-size: 19px; color: var(--azul); cursor: pointer; }
   .topbar .user { font-size: 13px; color: var(--gris); }
   .topbar button {
     background: var(--borde); color: var(--texto); border: none;
@@ -74,27 +68,73 @@
   }
   .topbar button:hover { background: #363b4d; }
   .contenido { max-width: 1000px; margin: 0 auto; padding: 30px 24px; }
-  .bienvenida {
+
+  .cab {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 22px; flex-wrap: wrap; gap: 12px;
+  }
+  .cab h2 { font-size: 22px; }
+  .cab .sub { color: var(--gris); font-size: 13px; margin-top: 2px; }
+
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+  .cat-card {
     background: var(--panel); border: 1px solid var(--borde);
-    border-radius: 14px; padding: 30px; text-align: center;
+    border-radius: 12px; padding: 20px; cursor: pointer; transition: border-color .15s;
   }
-  .bienvenida h2 { font-size: 22px; margin-bottom: 10px; }
-  .bienvenida p { color: var(--gris); margin-bottom: 8px; }
-  .badge-ok {
-    display: inline-block; background: #10331f; color: #5ed98a;
-    border: 1px solid #1f7a44; padding: 6px 14px; border-radius: 20px;
-    font-size: 13px; margin-top: 16px;
+  .cat-card:hover { border-color: var(--azul); }
+  .cat-card h3 { font-size: 17px; margin-bottom: 6px; }
+  .cat-card .desc { color: var(--gris); font-size: 13px; margin-bottom: 14px; min-height: 34px; }
+  .cat-card .meta { display: flex; gap: 8px; flex-wrap: wrap; }
+  .tag {
+    font-size: 12px; padding: 4px 10px; border-radius: 20px;
+    background: var(--fondo); border: 1px solid var(--borde); color: #b8bcc8;
   }
-  .proximo {
-    margin-top: 24px; padding: 18px; background: var(--fondo);
-    border: 1px dashed var(--borde); border-radius: 10px;
-    font-size: 13px; color: var(--gris); text-align: left;
+  .tag.pub { background: #10331f; color: #5ed98a; border-color: #1f7a44; }
+  .tag.bor { background: #3a2e10; color: #e0c060; border-color: #7a6020; }
+
+  .vacio {
+    text-align: center; padding: 60px 20px; color: var(--gris);
+    background: var(--panel); border: 1px dashed var(--borde); border-radius: 12px;
   }
-  .proximo b { color: var(--texto); }
+  .cargando { text-align: center; padding: 50px; color: var(--gris); }
+
+  /* Modal */
+  .modal-fondo {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.7);
+    display: none; align-items: center; justify-content: center; padding: 20px; z-index: 100;
+  }
+  .modal-fondo.abierto { display: flex; }
+  .modal {
+    background: var(--panel); border: 1px solid var(--borde);
+    border-radius: 14px; padding: 28px; width: 100%; max-width: 460px;
+  }
+  .modal h3 { font-size: 19px; margin-bottom: 6px; }
+  .modal .modal-sub { color: var(--gris); font-size: 13px; margin-bottom: 18px; }
+  .modal-botones { display: flex; gap: 10px; margin-top: 22px; }
+  .modal-botones .btn { flex: 1; margin-top: 0; }
+
+  /* Detalle catalogo */
+  .volver {
+    background: none; border: none; color: var(--azul); font-size: 14px;
+    cursor: pointer; padding: 0; margin-bottom: 16px;
+  }
+  .volver:hover { text-decoration: underline; }
+  .articulo-fila {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 14px 18px; border-bottom: 1px solid var(--borde); font-size: 14px;
+  }
+  .articulo-fila:last-child { border-bottom: none; }
+  .articulo-fila .ref { color: var(--gris); font-size: 12px; }
+  .precio { color: #5ed98a; font-weight: 600; font-size: 15px; }
+  .lista-articulos {
+    background: var(--panel); border: 1px solid var(--borde);
+    border-radius: 12px; overflow: hidden;
+  }
 </style>
 </head>
 <body>
 <div id="root">
+
   <!-- LOGIN -->
   <div class="login-wrap" id="vista-login">
     <div class="login-box">
@@ -106,80 +146,112 @@
       <input id="in-email" type="email" placeholder="usuario@lomhifar.com" value="admin@lomhifar.com" autocomplete="username">
       <label>Contraseña</label>
       <input id="in-pass" type="password" placeholder="••••••••" autocomplete="current-password">
-      <button class="btn" id="btn-login" onclick="hacerLogin()">Iniciar sesión</button>
+      <button class="btn btn-full" id="btn-login" onclick="hacerLogin()">Iniciar sesión</button>
       <div class="msg" id="login-msg"></div>
-      <div class="hint">
-        Acceso para personal autorizado de LOMHIFAR S.L.
-      </div>
+      <div class="hint">Acceso para personal autorizado de LOMHIFAR S.L.</div>
     </div>
   </div>
 
-  <!-- APP (oculta hasta login) -->
+  <!-- APP -->
   <div id="vista-app" style="display:none;">
     <div class="topbar">
-      <h1>🏥 CatalogPRO</h1>
+      <h1 onclick="irACatalogos()">🏥 CatalogPRO</h1>
       <div>
         <span class="user" id="lbl-user"></span>
         <button onclick="cerrarSesion()">Cerrar sesión</button>
       </div>
     </div>
     <div class="contenido">
-      <div class="bienvenida">
-        <h2>Bienvenido a CatalogPRO</h2>
-        <p>El sistema está conectado y funcionando correctamente.</p>
-        <div class="badge-ok">✅ Sesión activa · Backend conectado</div>
-        <div class="proximo">
-          <b>🚀 En construcción (próximas fases):</b><br><br>
-          • Panel de catálogos (ver, crear, gestionar)<br>
-          • Gestión de artículos<br>
-          • Eliminar láminas con doble confirmación<br>
-          • Compartir catálogos por email<br><br>
-          El motor (backend) ya está completo y probado. Estamos montando
-          la interfaz visual paso a paso.
+
+      <!-- LISTA DE CATALOGOS -->
+      <div id="pantalla-catalogos">
+        <div class="cab">
+          <div>
+            <h2>Catálogos</h2>
+            <div class="sub">Gestiona los catálogos de productos de LOMHIFAR</div>
+          </div>
+          <button class="btn" onclick="abrirModalCrear()">+ Nuevo catálogo</button>
         </div>
+        <div id="lista-catalogos">
+          <div class="cargando">Cargando catálogos...</div>
+        </div>
+      </div>
+
+      <!-- DETALLE DE UN CATALOGO -->
+      <div id="pantalla-detalle" style="display:none;">
+        <button class="volver" onclick="irACatalogos()">← Volver a catálogos</button>
+        <div class="cab">
+          <div>
+            <h2 id="det-nombre">Catálogo</h2>
+            <div class="sub" id="det-desc"></div>
+          </div>
+        </div>
+        <div id="det-articulos" class="lista-articulos">
+          <div class="cargando">Cargando...</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- MODAL CREAR CATALOGO -->
+  <div class="modal-fondo" id="modal-crear">
+    <div class="modal">
+      <h3>Nuevo catálogo</h3>
+      <div class="modal-sub">Crea un catálogo nuevo de productos</div>
+      <label>Nombre del catálogo</label>
+      <input id="nuevo-nombre" type="text" placeholder="Ej: Catálogo Primavera 2026">
+      <label>Descripción (opcional)</label>
+      <textarea id="nuevo-desc" rows="3" placeholder="Breve descripción del catálogo"></textarea>
+      <div class="msg" id="crear-msg"></div>
+      <div class="modal-botones">
+        <button class="btn btn-sec" onclick="cerrarModalCrear()">Cancelar</button>
+        <button class="btn" id="btn-crear" onclick="crearCatalogo()">Crear catálogo</button>
       </div>
     </div>
   </div>
+
 </div>
 
 <script>
-  // El frontend se sirve desde el mismo backend, asi que la API es el mismo origen.
   var API = "";
   var TOKEN = localStorage.getItem("cp_token") || null;
   var USER = null;
   try { USER = JSON.parse(localStorage.getItem("cp_user") || "null"); } catch(e) { USER = null; }
 
+  // ===== Navegacion vistas =====
   function mostrarApp() {
     document.getElementById("vista-login").style.display = "none";
     document.getElementById("vista-app").style.display = "block";
-    if (USER) {
-      document.getElementById("lbl-user").textContent = USER.name + " (" + USER.role + ")";
-    }
+    if (USER) document.getElementById("lbl-user").textContent = USER.name + " (" + USER.role + ")";
+    irACatalogos();
   }
-
   function mostrarLogin() {
     document.getElementById("vista-app").style.display = "none";
     document.getElementById("vista-login").style.display = "flex";
   }
+  function irACatalogos() {
+    document.getElementById("pantalla-detalle").style.display = "none";
+    document.getElementById("pantalla-catalogos").style.display = "block";
+    cargarCatalogos();
+  }
 
+  // ===== Login =====
   async function hacerLogin() {
     var btn = document.getElementById("btn-login");
     var msg = document.getElementById("login-msg");
     var email = document.getElementById("in-email").value.trim();
     var pass = document.getElementById("in-pass").value;
-    msg.className = "msg";
-    msg.style.display = "none";
+    msg.className = "msg"; msg.style.display = "none";
     btn.disabled = true; btn.textContent = "Entrando...";
     try {
       var r = await fetch(API + "/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+        method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: email, password: pass })
       });
       var d = await r.json();
       if (d.success && d.token) {
-        TOKEN = d.token;
-        USER = d.user;
+        TOKEN = d.token; USER = d.user;
         localStorage.setItem("cp_token", TOKEN);
         localStorage.setItem("cp_user", JSON.stringify(USER));
         mostrarApp();
@@ -189,11 +261,10 @@
       }
     } catch (ex) {
       msg.className = "msg error";
-      msg.textContent = "❌ No se pudo conectar con el servidor. Inténtalo de nuevo.";
+      msg.textContent = "❌ No se pudo conectar con el servidor.";
     }
     btn.disabled = false; btn.textContent = "Iniciar sesión";
   }
-
   function cerrarSesion() {
     TOKEN = null; USER = null;
     localStorage.removeItem("cp_token");
@@ -202,14 +273,119 @@
     mostrarLogin();
   }
 
-  // Al cargar: si ya hay sesion guardada, entrar directo
-  if (TOKEN && USER) {
-    mostrarApp();
-  } else {
-    mostrarLogin();
+  // ===== Catalogos =====
+  async function cargarCatalogos() {
+    var cont = document.getElementById("lista-catalogos");
+    cont.innerHTML = '<div class="cargando">Cargando catálogos...</div>';
+    try {
+      var r = await fetch(API + "/api/catalogs", { headers: { "Authorization": "Bearer " + TOKEN } });
+      if (r.status === 401) { cerrarSesion(); return; }
+      var d = await r.json();
+      if (d.success && d.catalogs && d.catalogs.length > 0) {
+        var html = '<div class="grid">';
+        d.catalogs.forEach(function(c) {
+          var estado = c.is_draft
+            ? '<span class="tag bor">Borrador</span>'
+            : '<span class="tag pub">Publicado</span>';
+          html += '<div class="cat-card" onclick="verCatalogo(' + c.id + ')">' +
+            '<h3>' + escapar(c.name) + '</h3>' +
+            '<div class="desc">' + escapar(c.description || "Sin descripción") + '</div>' +
+            '<div class="meta">' + estado +
+            '<span class="tag">' + (c.article_count || 0) + ' artículos</span>' +
+            '</div></div>';
+        });
+        html += '</div>';
+        cont.innerHTML = html;
+      } else {
+        cont.innerHTML = '<div class="vacio">No hay catálogos todavía.<br>Pulsa "+ Nuevo catálogo" para crear el primero.</div>';
+      }
+    } catch (ex) {
+      cont.innerHTML = '<div class="vacio">Error al cargar: ' + ex.message + '</div>';
+    }
   }
 
-  // Permitir Enter en el campo contraseña
+  async function verCatalogo(id) {
+    document.getElementById("pantalla-catalogos").style.display = "none";
+    document.getElementById("pantalla-detalle").style.display = "block";
+    document.getElementById("det-nombre").textContent = "Cargando...";
+    document.getElementById("det-desc").textContent = "";
+    document.getElementById("det-articulos").innerHTML = '<div class="cargando">Cargando artículos...</div>';
+    try {
+      var r = await fetch(API + "/api/catalogs/" + id, { headers: { "Authorization": "Bearer " + TOKEN } });
+      var d = await r.json();
+      if (d.success) {
+        document.getElementById("det-nombre").textContent = d.catalog.name;
+        document.getElementById("det-desc").textContent = d.catalog.description || "";
+        var cont = document.getElementById("det-articulos");
+        if (d.articles && d.articles.length > 0) {
+          var html = "";
+          d.articles.forEach(function(a) {
+            html += '<div class="articulo-fila"><div>' +
+              '<div>' + escapar(a.name) + '</div>' +
+              '<div class="ref">' + escapar(a.reference || "") + '</div>' +
+              '</div><div class="precio">' + (a.pvpr ? a.pvpr + " €" : "-") + '</div></div>';
+          });
+          cont.innerHTML = html;
+        } else {
+          cont.innerHTML = '<div class="vacio">Este catálogo no tiene artículos todavía.</div>';
+        }
+      } else {
+        document.getElementById("det-articulos").innerHTML = '<div class="vacio">' + (d.error || "Error") + '</div>';
+      }
+    } catch (ex) {
+      document.getElementById("det-articulos").innerHTML = '<div class="vacio">Error: ' + ex.message + '</div>';
+    }
+  }
+
+  // ===== Crear catalogo =====
+  function abrirModalCrear() {
+    document.getElementById("nuevo-nombre").value = "";
+    document.getElementById("nuevo-desc").value = "";
+    var m = document.getElementById("crear-msg"); m.className = "msg"; m.style.display = "none";
+    document.getElementById("modal-crear").classList.add("abierto");
+  }
+  function cerrarModalCrear() {
+    document.getElementById("modal-crear").classList.remove("abierto");
+  }
+  async function crearCatalogo() {
+    var btn = document.getElementById("btn-crear");
+    var msg = document.getElementById("crear-msg");
+    var nombre = document.getElementById("nuevo-nombre").value.trim();
+    var desc = document.getElementById("nuevo-desc").value.trim();
+    msg.className = "msg"; msg.style.display = "none";
+    if (!nombre) {
+      msg.className = "msg error"; msg.textContent = "⚠️ El nombre es obligatorio";
+      return;
+    }
+    btn.disabled = true; btn.textContent = "Creando...";
+    try {
+      var r = await fetch(API + "/api/catalogs", {
+        method: "POST",
+        headers: { "Authorization": "Bearer " + TOKEN, "Content-Type": "application/json" },
+        body: JSON.stringify({ name: nombre, description: desc })
+      });
+      var d = await r.json();
+      if (d.success || d.catalog) {
+        cerrarModalCrear();
+        cargarCatalogos();
+      } else {
+        msg.className = "msg error"; msg.textContent = "⚠️ " + (d.error || "No se pudo crear");
+      }
+    } catch (ex) {
+      msg.className = "msg error"; msg.textContent = "❌ Error: " + ex.message;
+    }
+    btn.disabled = false; btn.textContent = "Crear catálogo";
+  }
+
+  // ===== Util =====
+  function escapar(t) {
+    var d = document.createElement("div");
+    d.textContent = t == null ? "" : String(t);
+    return d.innerHTML;
+  }
+
+  // ===== Inicio =====
+  if (TOKEN && USER) { mostrarApp(); } else { mostrarLogin(); }
   document.getElementById("in-pass").addEventListener("keydown", function(e) {
     if (e.key === "Enter") hacerLogin();
   });
