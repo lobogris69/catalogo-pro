@@ -1,6 +1,6 @@
 /**
- * CatalogPRO - Backend API
- * Servidor Express principal - Etapa 4B (eliminar laminas + compartir email)
+ * CatalogPRO - Backend API + Frontend
+ * Servidor Express principal - Etapa 5A (frontend con login)
  */
 
 import express, { Express, Request, Response, NextFunction } from 'express';
@@ -39,7 +39,7 @@ const articleService = new ArticleService(pool);
 const sheetDeleteService = new CatalogSheetDeleteService(pool);
 const shareService = new ShareService(pool);
 
-app.use(helmet());
+app.use(helmet({ contentSecurityPolicy: false }));
 // CORS: permite peticiones desde cualquier origen.
 app.use(cors({
   origin: true,
@@ -59,13 +59,28 @@ app.use((req: Request, res: Response, next: NextFunction) => {
   next();
 });
 
+// Servir el frontend (carpeta public). __dirname en produccion es dist/,
+// asi que el frontend se copia a dist/public en el build.
+const FRONTEND_DIR = path.join(__dirname, 'public');
+app.use(express.static(FRONTEND_DIR));
+
 app.get('/', (req: Request, res: Response) => {
-  res.json({
-    name: 'CatalogPRO Backend',
-    status: 'OK',
-    version: '1.0.0',
-    message: 'Servidor en marcha. Etapa 4: eliminar laminas + compartir por email.',
-  });
+  const indexPath = path.join(FRONTEND_DIR, 'index.html');
+  if (fs.existsSync(indexPath)) {
+    res.sendFile(indexPath);
+  } else {
+    res.json({
+      name: 'CatalogPRO Backend',
+      status: 'OK',
+      version: '1.0.0',
+      message: 'Backend en marcha (frontend no encontrado).',
+    });
+  }
+});
+
+// Mantener el estado del backend disponible en /api
+app.get('/api', (req: Request, res: Response) => {
+  res.json({ name: 'CatalogPRO Backend', status: 'OK', version: '1.0.0' });
 });
 
 app.get('/health', async (req: Request, res: Response) => {
@@ -373,7 +388,18 @@ app.get('/api/catalogs/:id/share/history', verifyToken, async (req: AuthRequest,
 });
 
 app.use((req: Request, res: Response) => {
-  res.status(404).json({ error: 'Route not found', path: req.path, method: req.method });
+  // Rutas /api que no existen -> 404 JSON
+  if (req.path.startsWith('/api')) {
+    res.status(404).json({ error: 'Route not found', path: req.path, method: req.method });
+    return;
+  }
+  // Cualquier otra ruta -> servir el frontend (app de una sola pagina)
+  const indexPath = path.join(FRONTEND_DIR, 'index.html');
+  if (fs.existsSync(indexPath)) {
+    res.sendFile(indexPath);
+  } else {
+    res.status(404).json({ error: 'Not found' });
+  }
 });
 
 app.use((err: any, req: Request, res: Response, next: NextFunction) => {
@@ -505,11 +531,6 @@ async function crearDatosEjemplo(): Promise<void> {
   }
 }
 
-/**
- * Asegura que las tablas de la migracion 002 (compartir/eliminar) existen.
- * Se ejecuta SIEMPRE al arrancar. Si ya existen, no hace nada.
- * NO toca usuarios, articulos ni catalogos: solo anade lo que falte.
- */
 async function asegurarTablasEtapa4(): Promise<void> {
   try {
     const existe = await pool.query(
@@ -554,7 +575,7 @@ async function startServer() {
     console.log(`Servidor CatalogPRO ejecutandose en puerto ${PORT}`);
     console.log(`Environment: ${process.env.NODE_ENV || 'production'}`);
     console.log('');
-    console.log('Rutas: /health /api/auth/* /api/articles /api/catalogs (+ eliminar + compartir email)');
+    console.log('Frontend en / | API en /api | Health en /health');
     console.log('');
   });
 }
