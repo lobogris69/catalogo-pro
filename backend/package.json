@@ -20,7 +20,8 @@
     "axios": "^1.6.0",
     "cors": "^2.8.5",
     "helmet": "^7.1.0",
-    "express-validator": "^7.0.1"
+    "express-validator": "^7.0.1",
+    "nodemailer": "^6.9.0"
   },
   "devDependencies": {
     "typescript": "^5.3.3",
@@ -30,6 +31,7 @@
     "@types/cors": "^2.8.17",
     "@types/jsonwebtoken": "8.5.9",
     "@types/bcryptjs": "^2.4.6",
+    "@types/nodemailer": "^6.4.0",
     "ts-node": "^10.9.2"
   },
   "engines": {
