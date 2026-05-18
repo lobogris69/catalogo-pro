@@ -1,6 +1,6 @@
 /**
  * CatalogPRO - Backend API
- * Servidor Express principal - Etapa 4 (eliminar laminas + arreglador tablas)
+ * Servidor Express principal - Etapa 4B (eliminar laminas + compartir email)
  */
 
 import express, { Express, Request, Response, NextFunction } from 'express';
@@ -15,6 +15,7 @@ import { AuthService } from './services/AuthService';
 import { CatalogService } from './services/CatalogService';
 import { ArticleService } from './services/ArticleService';
 import { CatalogSheetDeleteService } from './services/CatalogSheetDeleteService';
+import { ShareService } from './services/ShareService';
 import { verifyToken, AuthRequest } from './middleware/auth';
 
 dotenv.config();
@@ -36,6 +37,7 @@ const authService = new AuthService(pool);
 const catalogService = new CatalogService(pool);
 const articleService = new ArticleService(pool);
 const sheetDeleteService = new CatalogSheetDeleteService(pool);
+const shareService = new ShareService(pool);
 
 app.use(helmet());
 // CORS: permite peticiones desde cualquier origen.
@@ -62,7 +64,7 @@ app.get('/', (req: Request, res: Response) => {
     name: 'CatalogPRO Backend',
     status: 'OK',
     version: '1.0.0',
-    message: 'Servidor en marcha. Etapa 4: eliminar laminas con doble confirmacion.',
+    message: 'Servidor en marcha. Etapa 4: eliminar laminas + compartir por email.',
   });
 });
 
@@ -340,6 +342,36 @@ app.get('/api/catalogs/delete-requests/pending', verifyToken, async (req: AuthRe
   }
 });
 
+// ============================================================================
+// RUTAS DE COMPARTIR CATALOGO POR EMAIL (protegidas)
+// ============================================================================
+
+app.post('/api/catalogs/:id/share/email', verifyToken, async (req: AuthRequest, res: Response) => {
+  try {
+    if (!req.user) { res.status(401).json({ success: false, error: 'Unauthorized' }); return; }
+    const { recipient_email, recipient_name, sheet_numbers, message } = req.body;
+    const resultado = await shareService.shareByEmail({
+      catalog_id: Number(req.params.id),
+      recipient_email,
+      recipient_name: recipient_name || 'Cliente',
+      sheet_numbers: Array.isArray(sheet_numbers) ? sheet_numbers : undefined,
+      message,
+    }, req.user.id);
+    res.json({ success: true, share: resultado });
+  } catch (error) {
+    res.status(400).json({ success: false, error: (error as Error).message });
+  }
+});
+
+app.get('/api/catalogs/:id/share/history', verifyToken, async (req: AuthRequest, res: Response) => {
+  try {
+    const historial = await shareService.getShareHistory(Number(req.params.id));
+    res.json({ success: true, history: historial });
+  } catch (error) {
+    res.status(500).json({ success: false, error: (error as Error).message });
+  }
+});
+
 app.use((req: Request, res: Response) => {
   res.status(404).json({ error: 'Route not found', path: req.path, method: req.method });
 });
@@ -476,8 +508,6 @@ async function crearDatosEjemplo(): Promise<void> {
 /**
  * Asegura que las tablas de la migracion 002 (compartir/eliminar) existen.
  * Se ejecuta SIEMPRE al arrancar. Si ya existen, no hace nada.
- * Esto cubre el caso de bases de datos creadas ANTES de la Etapa 4
- * (donde la estructura ya existia y la migracion 002 no se re-ejecutaba).
  * NO toca usuarios, articulos ni catalogos: solo anade lo que falte.
  */
 async function asegurarTablasEtapa4(): Promise<void> {
@@ -524,7 +554,7 @@ async function startServer() {
     console.log(`Servidor CatalogPRO ejecutandose en puerto ${PORT}`);
     console.log(`Environment: ${process.env.NODE_ENV || 'production'}`);
     console.log('');
-    console.log('Rutas: /health /api/auth/* /api/articles /api/catalogs (+ eliminar laminas)');
+    console.log('Rutas: /health /api/auth/* /api/articles /api/catalogs (+ eliminar + compartir email)');
     console.log('');
   });
 }
