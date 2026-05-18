@@ -4,8 +4,9 @@
   "description": "Backend API para CatalogPRO - LOMHIFAR",
   "main": "dist/index.js",
   "scripts": {
-    "build": "tsc && npm run copy-sql",
+    "build": "tsc && npm run copy-sql && npm run copy-frontend",
     "copy-sql": "mkdir -p dist/db/migrations && cp -r src/db/migrations/*.sql dist/db/migrations/ 2>/dev/null || true",
+    "copy-frontend": "mkdir -p dist/public && cp -r src/public/* dist/public/ 2>/dev/null || true",
     "start": "node dist/index.js",
     "dev": "ts-node src/index.ts",
     "test": "echo \"no tests\" && exit 0"
