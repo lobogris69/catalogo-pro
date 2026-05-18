@@ -44,8 +44,7 @@ CREATE TABLE IF NOT EXISTS catalog_delete_requests (
   created_at TIMESTAMP DEFAULT NOW(),
   expires_at TIMESTAMP NOT NULL, -- 5 minutos de expiración
   confirmed_at TIMESTAMP,
-  confirmation_code VARCHAR(6), -- código de 6 dígitos opcional adicional
-  FOREIGN KEY (catalog_id, sheet_number) REFERENCES catalog_articles(catalog_id, sheet_number)
+  confirmation_code VARCHAR(6) -- código de 6 dígitos opcional adicional
 );
 
 CREATE INDEX idx_delete_requests_id ON catalog_delete_requests(delete_request_id);
