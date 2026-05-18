@@ -1,6 +1,6 @@
 /**
  * CatalogPRO - Backend API
- * Servidor Express principal - Etapa 3 (catalogos y articulos)
+ * Servidor Express principal - Etapa 4 (eliminar laminas + base compartir)
  */
 
 import express, { Express, Request, Response, NextFunction } from 'express';
@@ -14,6 +14,7 @@ import path from 'path';
 import { AuthService } from './services/AuthService';
 import { CatalogService } from './services/CatalogService';
 import { ArticleService } from './services/ArticleService';
+import { CatalogSheetDeleteService } from './services/CatalogSheetDeleteService';
 import { verifyToken, AuthRequest } from './middleware/auth';
 
 dotenv.config();
@@ -34,6 +35,7 @@ const pool = new Pool({
 const authService = new AuthService(pool);
 const catalogService = new CatalogService(pool);
 const articleService = new ArticleService(pool);
+const sheetDeleteService = new CatalogSheetDeleteService(pool);
 
 app.use(helmet());
 // CORS: permite peticiones desde cualquier origen.
@@ -60,7 +62,7 @@ app.get('/', (req: Request, res: Response) => {
     name: 'CatalogPRO Backend',
     status: 'OK',
     version: '1.0.0',
-    message: 'Servidor en marcha. Etapa 3: catalogos y articulos.',
+    message: 'Servidor en marcha. Etapa 4: eliminar laminas con doble confirmacion.',
   });
 });
 
@@ -279,6 +281,70 @@ app.delete('/api/catalogs/:id', verifyToken, async (req: AuthRequest, res: Respo
   }
 });
 
+// ============================================================================
+// RUTAS DE ELIMINAR LAMINAS (doble confirmacion, protegidas)
+// ============================================================================
+
+// Ver informacion de una lamina antes de eliminar
+app.get('/api/catalogs/:id/sheets/:num', verifyToken, async (req: AuthRequest, res: Response) => {
+  try {
+    const info = await sheetDeleteService.getSheetInfo(Number(req.params.id), Number(req.params.num));
+    if (!info) { res.status(404).json({ success: false, error: 'Sheet not found' }); return; }
+    res.json({ success: true, sheet: info });
+  } catch (error) {
+    res.status(500).json({ success: false, error: (error as Error).message });
+  }
+});
+
+// PASO 1: solicitar eliminacion de una lamina (devuelve codigo de confirmacion)
+app.post('/api/catalogs/:id/sheets/:num/delete-request', verifyToken, async (req: AuthRequest, res: Response) => {
+  try {
+    if (!req.user) { res.status(401).json({ success: false, error: 'Unauthorized' }); return; }
+    const solicitud = await sheetDeleteService.requestSheetDeletion(
+      Number(req.params.id), Number(req.params.num), req.user.id
+    );
+    res.status(201).json({ success: true, delete_request: solicitud });
+  } catch (error) {
+    res.status(400).json({ success: false, error: (error as Error).message });
+  }
+});
+
+// PASO 2: confirmar eliminacion (requiere el codigo del paso 1)
+app.post('/api/catalogs/delete-confirm', verifyToken, async (req: AuthRequest, res: Response) => {
+  try {
+    if (!req.user) { res.status(401).json({ success: false, error: 'Unauthorized' }); return; }
+    const { delete_request_id } = req.body;
+    if (!delete_request_id) { res.status(400).json({ success: false, error: 'delete_request_id required' }); return; }
+    const resultado = await sheetDeleteService.confirmSheetDeletion(delete_request_id, req.user.id);
+    res.json(resultado);
+  } catch (error) {
+    res.status(400).json({ success: false, error: (error as Error).message });
+  }
+});
+
+// Cancelar una solicitud de eliminacion
+app.post('/api/catalogs/delete-cancel', verifyToken, async (req: AuthRequest, res: Response) => {
+  try {
+    if (!req.user) { res.status(401).json({ success: false, error: 'Unauthorized' }); return; }
+    const { delete_request_id } = req.body;
+    await sheetDeleteService.cancelDeletion(delete_request_id, req.user.id);
+    res.json({ success: true, message: 'Delete request cancelled' });
+  } catch (error) {
+    res.status(400).json({ success: false, error: (error as Error).message });
+  }
+});
+
+// Ver solicitudes de eliminacion pendientes del usuario
+app.get('/api/catalogs/delete-requests/pending', verifyToken, async (req: AuthRequest, res: Response) => {
+  try {
+    if (!req.user) { res.status(401).json({ success: false, error: 'Unauthorized' }); return; }
+    const pendientes = await sheetDeleteService.getPendingRequests(req.user.id);
+    res.json({ success: true, pending: pendientes });
+  } catch (error) {
+    res.status(500).json({ success: false, error: (error as Error).message });
+  }
+});
+
 app.use((req: Request, res: Response) => {
   res.status(404).json({ error: 'Route not found', path: req.path, method: req.method });
 });
@@ -427,7 +493,7 @@ async function startServer() {
     console.log(`Servidor CatalogPRO ejecutandose en puerto ${PORT}`);
     console.log(`Environment: ${process.env.NODE_ENV || 'production'}`);
     console.log('');
-    console.log('Rutas: /health /api/info/db /api/auth/* /api/articles /api/catalogs');
+    console.log('Rutas: /health /api/auth/* /api/articles /api/catalogs (+ eliminar laminas)');
     console.log('');
   });
 }
