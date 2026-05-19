@@ -1,6 +1,6 @@
 /**
- * CatalogPRO - Backend API + Frontend
- * Servidor Express principal - Etapa 6A (imagenes en articulos)
+ * CatalogPRO - Backend API
+ * Servidor Express principal - Etapa 3 (catalogos y articulos)
  */
 
 import express, { Express, Request, Response, NextFunction } from 'express';
@@ -17,6 +17,7 @@ import { CatalogService } from './services/CatalogService';
 import { ArticleService } from './services/ArticleService';
 import { CatalogSheetDeleteService } from './services/CatalogSheetDeleteService';
 import { ShareService } from './services/ShareService';
+import { OrderService } from './services/OrderService';
 import { verifyToken, AuthRequest } from './middleware/auth';
 
 dotenv.config();
@@ -39,8 +40,9 @@ const catalogService = new CatalogService(pool);
 const articleService = new ArticleService(pool);
 const sheetDeleteService = new CatalogSheetDeleteService(pool);
 const shareService = new ShareService(pool);
+const orderService = new OrderService(pool);
 
-app.use(helmet({ contentSecurityPolicy: false }));
+app.use(helmet());
 // CORS: permite peticiones desde cualquier origen.
 app.use(cors({
   origin: true,
@@ -105,6 +107,10 @@ const subidaImagen = multer({
     else cb(new Error('Solo se permiten imagenes JPG, PNG o WEBP'));
   },
 });
+
+// ============================================================================
+// RUTAS DE SALUD
+// ============================================================================
 
 app.get('/', (req: Request, res: Response) => {
   const indexPath = path.join(FRONTEND_DIR, 'index.html');
@@ -175,6 +181,10 @@ app.get('/api/info/db', async (req: Request, res: Response) => {
   }
 });
 
+// ============================================================================
+// RUTAS DE AUTENTICACION
+// ============================================================================
+
 app.post('/api/auth/login', async (req: Request, res: Response) => {
   try {
     const { email, password } = req.body;
@@ -206,6 +216,11 @@ app.get('/api/auth/me', verifyToken, async (req: AuthRequest, res: Response) => 
   }
 });
 
+// ============================================================================
+// RUTAS DE ARTICULOS (protegidas: requieren login)
+// ============================================================================
+
+// Listar articulos (con filtros opcionales por query string)
 app.get('/api/articles', verifyToken, async (req: AuthRequest, res: Response) => {
   try {
     const { query, category, state, limit, offset } = req.query;
@@ -222,6 +237,7 @@ app.get('/api/articles', verifyToken, async (req: AuthRequest, res: Response) =>
   }
 });
 
+// Ver un articulo concreto
 app.get('/api/articles/:id', verifyToken, async (req: AuthRequest, res: Response) => {
   try {
     const articulo = await articleService.getArticleById(Number(req.params.id));
@@ -232,6 +248,7 @@ app.get('/api/articles/:id', verifyToken, async (req: AuthRequest, res: Response
   }
 });
 
+// Crear articulo
 app.post('/api/articles', verifyToken, async (req: AuthRequest, res: Response) => {
   try {
     if (!req.user) { res.status(401).json({ success: false, error: 'Unauthorized' }); return; }
@@ -242,6 +259,7 @@ app.post('/api/articles', verifyToken, async (req: AuthRequest, res: Response) =
   }
 });
 
+// Actualizar articulo
 app.put('/api/articles/:id', verifyToken, async (req: AuthRequest, res: Response) => {
   try {
     if (!req.user) { res.status(401).json({ success: false, error: 'Unauthorized' }); return; }
@@ -252,6 +270,7 @@ app.put('/api/articles/:id', verifyToken, async (req: AuthRequest, res: Response
   }
 });
 
+// Categorias y tags (utiles para filtros)
 app.get('/api/categories', verifyToken, async (req: AuthRequest, res: Response) => {
   try {
     const categorias = await articleService.getCategories();
@@ -261,6 +280,11 @@ app.get('/api/categories', verifyToken, async (req: AuthRequest, res: Response) 
   }
 });
 
+// ============================================================================
+// RUTAS DE CATALOGOS (protegidas: requieren login)
+// ============================================================================
+
+// Listar todos los catalogos
 app.get('/api/catalogs', verifyToken, async (req: AuthRequest, res: Response) => {
   try {
     const { limit, offset } = req.query;
@@ -274,6 +298,7 @@ app.get('/api/catalogs', verifyToken, async (req: AuthRequest, res: Response) =>
   }
 });
 
+// Ver un catalogo concreto (con sus articulos)
 app.get('/api/catalogs/:id', verifyToken, async (req: AuthRequest, res: Response) => {
   try {
     const catalogo = await catalogService.getCatalogById(Number(req.params.id));
@@ -285,6 +310,7 @@ app.get('/api/catalogs/:id', verifyToken, async (req: AuthRequest, res: Response
   }
 });
 
+// Crear catalogo
 app.post('/api/catalogs', verifyToken, async (req: AuthRequest, res: Response) => {
   try {
     if (!req.user) { res.status(401).json({ success: false, error: 'Unauthorized' }); return; }
@@ -295,6 +321,7 @@ app.post('/api/catalogs', verifyToken, async (req: AuthRequest, res: Response) =
   }
 });
 
+// Actualizar catalogo
 app.put('/api/catalogs/:id', verifyToken, async (req: AuthRequest, res: Response) => {
   try {
     if (!req.user) { res.status(401).json({ success: false, error: 'Unauthorized' }); return; }
@@ -305,6 +332,7 @@ app.put('/api/catalogs/:id', verifyToken, async (req: AuthRequest, res: Response
   }
 });
 
+// Publicar catalogo
 app.post('/api/catalogs/:id/publish', verifyToken, async (req: AuthRequest, res: Response) => {
   try {
     if (!req.user) { res.status(401).json({ success: false, error: 'Unauthorized' }); return; }
@@ -315,6 +343,7 @@ app.post('/api/catalogs/:id/publish', verifyToken, async (req: AuthRequest, res:
   }
 });
 
+// Anadir articulo a catalogo
 app.post('/api/catalogs/:id/articles', verifyToken, async (req: AuthRequest, res: Response) => {
   try {
     const { article_id, display_order, sheet_number } = req.body;
@@ -330,6 +359,7 @@ app.post('/api/catalogs/:id/articles', verifyToken, async (req: AuthRequest, res
   }
 });
 
+// Eliminar catalogo
 app.delete('/api/catalogs/:id', verifyToken, async (req: AuthRequest, res: Response) => {
   try {
     if (!req.user) { res.status(401).json({ success: false, error: 'Unauthorized' }); return; }
@@ -339,10 +369,17 @@ app.delete('/api/catalogs/:id', verifyToken, async (req: AuthRequest, res: Respo
     res.status(400).json({ success: false, error: (error as Error).message });
   }
 });
+
+// ============================================================================
+// MANEJO DE ERRORES
+// ============================================================================
+
+
 // ============================================================================
 // RUTAS DE ELIMINAR LAMINAS (doble confirmacion, protegidas)
 // ============================================================================
 
+// Ver informacion de una lamina antes de eliminar
 app.get('/api/catalogs/:id/sheets/:num', verifyToken, async (req: AuthRequest, res: Response) => {
   try {
     const info = await sheetDeleteService.getSheetInfo(Number(req.params.id), Number(req.params.num));
@@ -353,6 +390,7 @@ app.get('/api/catalogs/:id/sheets/:num', verifyToken, async (req: AuthRequest, r
   }
 });
 
+// PASO 1: solicitar eliminacion de una lamina (devuelve codigo de confirmacion)
 app.post('/api/catalogs/:id/sheets/:num/delete-request', verifyToken, async (req: AuthRequest, res: Response) => {
   try {
     if (!req.user) { res.status(401).json({ success: false, error: 'Unauthorized' }); return; }
@@ -365,6 +403,7 @@ app.post('/api/catalogs/:id/sheets/:num/delete-request', verifyToken, async (req
   }
 });
 
+// PASO 2: confirmar eliminacion (requiere el codigo del paso 1)
 app.post('/api/catalogs/delete-confirm', verifyToken, async (req: AuthRequest, res: Response) => {
   try {
     if (!req.user) { res.status(401).json({ success: false, error: 'Unauthorized' }); return; }
@@ -377,6 +416,7 @@ app.post('/api/catalogs/delete-confirm', verifyToken, async (req: AuthRequest, r
   }
 });
 
+// Cancelar una solicitud de eliminacion
 app.post('/api/catalogs/delete-cancel', verifyToken, async (req: AuthRequest, res: Response) => {
   try {
     if (!req.user) { res.status(401).json({ success: false, error: 'Unauthorized' }); return; }
@@ -387,7 +427,7 @@ app.post('/api/catalogs/delete-cancel', verifyToken, async (req: AuthRequest, re
     res.status(400).json({ success: false, error: (error as Error).message });
   }
 });
-
+// Ver solicitudes de eliminacion pendientes del usuario
 app.get('/api/catalogs/delete-requests/pending', verifyToken, async (req: AuthRequest, res: Response) => {
   try {
     if (!req.user) { res.status(401).json({ success: false, error: 'Unauthorized' }); return; }
@@ -398,10 +438,12 @@ app.get('/api/catalogs/delete-requests/pending', verifyToken, async (req: AuthRe
   }
 });
 
+
 // ============================================================================
 // RUTAS DE COMPARTIR CATALOGO POR EMAIL (protegidas)
 // ============================================================================
 
+// Compartir catalogo (o laminas concretas) por email
 app.post('/api/catalogs/:id/share/email', verifyToken, async (req: AuthRequest, res: Response) => {
   try {
     if (!req.user) { res.status(401).json({ success: false, error: 'Unauthorized' }); return; }
@@ -419,12 +461,134 @@ app.post('/api/catalogs/:id/share/email', verifyToken, async (req: AuthRequest, 
   }
 });
 
+// Historial de comparticiones de un catalogo
 app.get('/api/catalogs/:id/share/history', verifyToken, async (req: AuthRequest, res: Response) => {
   try {
     const historial = await shareService.getShareHistory(Number(req.params.id));
     res.json({ success: true, history: historial });
   } catch (error) {
     res.status(500).json({ success: false, error: (error as Error).message });
+  }
+});
+
+
+// ============================================================================
+// RUTAS DE PEDIDOS (protegidas)
+// ============================================================================
+
+// Listar pedidos: admin ve todos, comercial solo los suyos
+app.get('/api/orders', verifyToken, async (req: AuthRequest, res: Response) => {
+  try {
+    if (!req.user) { res.status(401).json({ success: false, error: 'Unauthorized' }); return; }
+    const { status, limit, offset } = req.query;
+    const lim = limit ? Number(limit) : 50;
+    const off = offset ? Number(offset) : 0;
+    const est = status ? String(status) : undefined;
+    let pedidos;
+    if (req.user.role === 'admin') {
+      pedidos = await orderService.getAllOrders(est, lim, off);
+    } else {
+      pedidos = await orderService.getUserOrders(req.user.id, est, lim, off);
+    }
+    res.json({ success: true, orders: pedidos });
+  } catch (error) {
+    res.status(500).json({ success: false, error: (error as Error).message });
+  }
+});
+
+// Resumen de pedidos (para panel)
+app.get('/api/orders/summary', verifyToken, async (req: AuthRequest, res: Response) => {
+  try {
+    if (!req.user) { res.status(401).json({ success: false, error: 'Unauthorized' }); return; }
+    const userId = req.user.role === 'admin' ? undefined : req.user.id;
+    const resumen = await orderService.getOrderSummary(userId);
+    res.json({ success: true, summary: resumen });
+  } catch (error) {
+    res.status(500).json({ success: false, error: (error as Error).message });
+  }
+});
+
+// Ver un pedido con sus articulos
+app.get('/api/orders/:id', verifyToken, async (req: AuthRequest, res: Response) => {
+  try {
+    const pedido = await orderService.getOrderById(Number(req.params.id));
+    if (!pedido) { res.status(404).json({ success: false, error: 'Order not found' }); return; }
+    res.json({ success: true, order: pedido });
+  } catch (error) {
+    res.status(500).json({ success: false, error: (error as Error).message });
+  }
+});
+
+// Crear un pedido (cesta vacia en borrador)
+app.post('/api/orders', verifyToken, async (req: AuthRequest, res: Response) => {
+  try {
+    if (!req.user) { res.status(401).json({ success: false, error: 'Unauthorized' }); return; }
+    const { catalog_id, client_name, notes } = req.body;
+    const pedido = await orderService.createOrder({ catalog_id, client_name, notes }, req.user.id);
+    res.status(201).json({ success: true, order: pedido });
+  } catch (error) {
+    res.status(400).json({ success: false, error: (error as Error).message });
+  }
+});
+
+// Anadir un articulo al pedido (con cantidad)
+app.post('/api/orders/:id/items', verifyToken, async (req: AuthRequest, res: Response) => {
+  try {
+    const { article_id, quantity, composition_json, notes } = req.body;
+    const item = await orderService.addOrderItem(Number(req.params.id), {
+      article_id: Number(article_id),
+      quantity: Number(quantity) || 1,
+      composition_json: composition_json,
+      notes: notes,
+    });
+    res.status(201).json({ success: true, item });
+  } catch (error) {
+    res.status(400).json({ success: false, error: (error as Error).message });
+  }
+});
+
+// Cambiar la cantidad de un articulo del pedido
+app.put('/api/orders/:id/items/:itemId', verifyToken, async (req: AuthRequest, res: Response) => {
+  try {
+    const { quantity } = req.body;
+    const item = await orderService.updateOrderItem(
+      Number(req.params.id), Number(req.params.itemId), Number(quantity)
+    );
+    res.json({ success: true, item });
+  } catch (error) {
+    res.status(400).json({ success: false, error: (error as Error).message });
+  }
+});
+
+// Quitar un articulo del pedido
+app.delete('/api/orders/:id/items/:itemId', verifyToken, async (req: AuthRequest, res: Response) => {
+  try {
+    await orderService.removeOrderItem(Number(req.params.id), Number(req.params.itemId));
+    res.json({ success: true, message: 'Item removed' });
+  } catch (error) {
+    res.status(400).json({ success: false, error: (error as Error).message });
+  }
+});
+
+// Confirmar el pedido (pasa de borrador a confirmado)
+app.post('/api/orders/:id/confirm', verifyToken, async (req: AuthRequest, res: Response) => {
+  try {
+    if (!req.user) { res.status(401).json({ success: false, error: 'Unauthorized' }); return; }
+    const pedido = await orderService.confirmOrder(Number(req.params.id), req.user.id);
+    res.json({ success: true, order: pedido });
+  } catch (error) {
+    res.status(400).json({ success: false, error: (error as Error).message });
+  }
+});
+
+// Marcar pedido como enviado
+app.post('/api/orders/:id/sent', verifyToken, async (req: AuthRequest, res: Response) => {
+  try {
+    if (!req.user) { res.status(401).json({ success: false, error: 'Unauthorized' }); return; }
+    const pedido = await orderService.markOrderAsSent(Number(req.params.id), req.user.id);
+    res.json({ success: true, order: pedido });
+  } catch (error) {
+    res.status(400).json({ success: false, error: (error as Error).message });
   }
 });
 
@@ -469,6 +633,10 @@ app.use((err: any, req: Request, res: Response, next: NextFunction) => {
     timestamp: new Date().toISOString(),
   });
 });
+
+// ============================================================================
+// PREPARACION DE LA BASE DE DATOS
+// ============================================================================
 
 async function esperarBaseDatos(maxIntentos = 15): Promise<boolean> {
   for (let i = 1; i <= maxIntentos; i++) {
@@ -541,6 +709,11 @@ async function crearUsuariosIniciales(): Promise<void> {
   }
 }
 
+/**
+ * Crea articulos y un catalogo de ejemplo si no existen.
+ * Reemplaza al seed.sql original (que tenia un error en la seccion
+ * de catalogos: insertaba 7 valores en 6 columnas).
+ */
 async function crearDatosEjemplo(): Promise<void> {
   try {
     const cuenta = await pool.query('SELECT COUNT(*)::int AS n FROM articles');
@@ -567,6 +740,7 @@ async function crearDatosEjemplo(): Promise<void> {
     }
     console.log(`${articulos.length} articulos de ejemplo creados`);
 
+    // Crear un catalogo de ejemplo (corrige el error del seed.sql original)
     const admin = await pool.query("SELECT id FROM users WHERE email = 'admin@lomhifar.com'");
     const adminId = admin.rows.length > 0 ? admin.rows[0].id : null;
     if (adminId) {
@@ -576,6 +750,7 @@ async function crearDatosEjemplo(): Promise<void> {
         ['Catalogo Maestro Q2 2026', adminId, 'Catalogo maestro con articulos de ejemplo']
       );
       const catId = cat.rows[0].id;
+      // Anadir todos los articulos al catalogo
       const arts = await pool.query('SELECT id FROM articles ORDER BY display_order');
       let orden = 1;
       for (const row of arts.rows) {
@@ -591,6 +766,18 @@ async function crearDatosEjemplo(): Promise<void> {
   }
 }
 
+// ============================================================================
+// INICIAR SERVIDOR
+// ============================================================================
+
+
+/**
+ * Asegura que las tablas de la migracion 002 (compartir/eliminar) existen.
+ * Se ejecuta SIEMPRE al arrancar. Si ya existen, no hace nada.
+ * Esto cubre el caso de bases de datos creadas ANTES de la Etapa 4
+ * (donde la estructura ya existia y la migracion 002 no se re-ejecutaba).
+ * NO toca usuarios, articulos ni catalogos: solo anade lo que falte.
+ */
 async function asegurarTablasEtapa4(): Promise<void> {
   try {
     const existe = await pool.query(
@@ -635,7 +822,7 @@ async function startServer() {
     console.log(`Servidor CatalogPRO ejecutandose en puerto ${PORT}`);
     console.log(`Environment: ${process.env.NODE_ENV || 'production'}`);
     console.log('');
-    console.log('Frontend en / | API en /api | Imagenes en /uploads | Health en /health');
+    console.log('Rutas: /health /api/info/db /api/auth/* /api/articles /api/catalogs');
     console.log('');
   });
 }
