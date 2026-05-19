@@ -91,7 +91,6 @@
   .art-check .info { flex: 1; }
   .art-check .info .nm { font-size: 14px; }
   .art-check .info .rf { font-size: 12px; color: var(--gris); }
-  /* Miniaturas de imagen */
   .miniatura {
     width: 52px; height: 52px; border-radius: 8px; object-fit: cover;
     background: var(--fondo); border: 1px solid var(--borde); flex-shrink: 0;
@@ -108,7 +107,6 @@
     border: 1px solid var(--borde); margin-top: 8px; display: none;
   }
   .nota-imagen { font-size: 12px; color: var(--gris); margin-top: 6px; }
-  /* Pedidos: cesta y cantidades */
   .barra-pedido {
     background: #10242a; border: 1px solid var(--azul); border-radius: 10px;
     padding: 12px 18px; margin-bottom: 16px; display: flex;
@@ -149,7 +147,6 @@
 <body>
 <div id="root">
 
-  <!-- LOGIN -->
   <div class="login-wrap" id="vista-login">
     <div class="login-box">
       <div class="logo">
@@ -166,7 +163,6 @@
     </div>
   </div>
 
-  <!-- APP -->
   <div id="vista-app" style="display:none;">
     <div class="topbar">
       <h1 onclick="navA('catalogos')">🏥 CatalogPRO</h1>
@@ -181,7 +177,6 @@
     </div>
     <div class="contenido">
 
-      <!-- LISTA CATALOGOS -->
       <div id="pantalla-catalogos">
         <div class="cab">
           <div><h2>Catálogos</h2><div class="sub">Gestiona los catálogos de productos de LOMHIFAR</div></div>
@@ -190,7 +185,6 @@
         <div id="lista-catalogos"><div class="cargando">Cargando catálogos...</div></div>
       </div>
 
-      <!-- DETALLE CATALOGO -->
       <div id="pantalla-detalle" style="display:none;">
         <button class="volver" onclick="navA('catalogos')">← Volver a catálogos</button>
         <div class="cab">
@@ -205,7 +199,6 @@
         <div id="det-articulos" class="lista-articulos"><div class="cargando">Cargando...</div></div>
       </div>
 
-      <!-- PANTALLA DE PEDIDO (montar cesta) -->
       <div id="pantalla-pedido" style="display:none;">
         <button class="volver" onclick="volverDelPedido()">← Volver al catálogo</button>
         <div class="cab">
@@ -220,7 +213,6 @@
         <div id="ped-articulos" class="lista-articulos"><div class="cargando">Cargando artículos...</div></div>
       </div>
 
-      <!-- LISTA ARTICULOS -->
       <div id="pantalla-articulos" style="display:none;">
         <div class="cab">
           <div><h2>Artículos</h2><div class="sub">Catálogo maestro de productos de LOMHIFAR</div></div>
@@ -232,7 +224,6 @@
     </div>
   </div>
 
-  <!-- MODAL CREAR CATALOGO -->
   <div class="modal-fondo" id="modal-crear-cat">
     <div class="modal">
       <h3>Nuevo catálogo</h3>
@@ -249,7 +240,6 @@
     </div>
   </div>
 
-  <!-- MODAL CREAR ARTICULO -->
   <div class="modal-fondo" id="modal-crear-art">
     <div class="modal">
       <h3>Nuevo artículo</h3>
@@ -282,7 +272,6 @@
     </div>
   </div>
 
-  <!-- MODAL AÑADIR ARTICULOS A CATALOGO -->
   <div class="modal-fondo" id="modal-anadir-arts">
     <div class="modal">
       <h3>Añadir artículos al catálogo</h3>
@@ -298,7 +287,6 @@
     </div>
   </div>
 
-  <!-- MODAL ENVIAR POR EMAIL -->
   <div class="modal-fondo" id="modal-email">
     <div class="modal">
       <h3>✉️ Enviar catálogo por email</h3>
@@ -317,7 +305,6 @@
     </div>
   </div>
 
-  <!-- MODAL NOMBRE DEL CLIENTE (iniciar pedido) -->
   <div class="modal-fondo" id="modal-cliente">
     <div class="modal">
       <h3>🛒 Nuevo pedido</h3>
@@ -334,7 +321,6 @@
     </div>
   </div>
 
-  <!-- MODAL VER CESTA -->
   <div class="modal-fondo" id="modal-cesta">
     <div class="modal">
       <h3>🛒 Cesta del pedido</h3>
@@ -350,15 +336,12 @@
     </div>
   </div>
 
-  <!-- MODAL ELIMINAR LAMINA (doble confirmacion) -->
   <div class="modal-fondo" id="modal-eliminar">
     <div class="modal">
       <h3>🗑️ Eliminar lámina</h3>
       <div class="modal-sub">Esta acción borra de forma permanente todos los artículos de una lámina del catálogo</div>
 
-      <!-- Paso 1: elegir lamina -->
       <div id="elim-paso1">
-       <div id="elim-paso1">
         <label>Número de lámina a eliminar</label>
         <input id="elim-num" type="number" value="1" min="1">
         <div style="background:#3a1620; border:1px solid #a52f44; color:#f08098; padding:12px; border-radius:9px; font-size:13px; margin-top:14px;">
@@ -371,7 +354,6 @@
         </div>
       </div>
 
-      <!-- Paso 2: confirmar -->
       <div id="elim-paso2" style="display:none;">
         <div style="background:#3a2e10; border:1px solid #7a6020; color:#e0c060; padding:14px; border-radius:9px; font-size:14px; margin-bottom:8px;">
           <div id="elim-resumen"></div>
@@ -554,9 +536,7 @@
     } catch (ex) {
       cont.innerHTML = '<div class="vacio">Error al cargar: ' + ex.message + '</div>';
     }
-  }
-
-  function cerrarModal(id) { document.getElementById(id).classList.remove("abierto"); }
+  }function cerrarModal(id) { document.getElementById(id).classList.remove("abierto"); }
 
   function abrirModalCrearCat() {
     document.getElementById("nuevo-cat-nombre").value = "";
@@ -644,7 +624,6 @@
     }
     btn.disabled = true; btn.textContent = "Creando...";
     try {
-      // Si hay imagen seleccionada, subirla primero
       var imagePath = null;
       var inputImg = document.getElementById("art-imagen");
       if (inputImg.files && inputImg.files[0]) {
@@ -679,7 +658,6 @@
     } catch (ex) { msg.className = "msg error"; msg.textContent = "❌ Error: " + ex.message; }
     btn.disabled = false; btn.textContent = "Crear artículo";
   }
- }
 
   async function anadirArticulosSeleccionados() {
     var btn = document.getElementById("btn-anadir");
@@ -712,7 +690,6 @@
     }
   }
 
-  // ===== Enviar por email =====
   function abrirModalEmail() {
     document.getElementById("em-dest").value = "";
     document.getElementById("em-nombre").value = "";
@@ -749,7 +726,6 @@
     btn.disabled = false; btn.textContent = "Enviar email";
   }
 
-  // ===== Eliminar lamina (doble confirmacion) =====
   var ELIM_REQUEST_ID = null;
   function abrirModalEliminar() {
     document.getElementById("elim-num").value = "1";
@@ -768,14 +744,12 @@
     if (!num || Number(num) < 1) { msg.className = "msg error"; msg.textContent = "⚠️ Indica un número de lámina válido"; return; }
     btn.disabled = true; btn.textContent = "Comprobando...";
     try {
-      // Primero ver que la lamina existe y cuantos articulos tiene
       var ri = await fetch(API + "/api/catalogs/" + CAT_ACTUAL + "/sheets/" + num, { headers: { "Authorization": "Bearer " + TOKEN } });
       var di = await ri.json();
       if (!di.success || !di.sheet) {
         msg.className = "msg error"; msg.textContent = "⚠️ La lámina " + num + " no existe en este catálogo";
         btn.disabled = false; btn.textContent = "Continuar"; return;
       }
-      // Solicitar el borrado (paso 1 de la doble confirmacion)
       var rr = await fetch(API + "/api/catalogs/" + CAT_ACTUAL + "/sheets/" + num + "/delete-request", {
         method: "POST", headers: { "Authorization": "Bearer " + TOKEN, "Content-Type": "application/json" }, body: "{}"
       });
@@ -832,12 +806,10 @@
     btn.disabled = false; btn.textContent = "Confirmar eliminación";
   }
 
-  // ===== PEDIDOS =====
-  var PEDIDO_ACTUAL = null;      // id del pedido en curso
-  var PEDIDO_CLIENTE = "";       // nombre del cliente
-  var CESTA_CUENTA = 0;          // nº de articulos anadidos a la cesta
+  var PEDIDO_ACTUAL = null;
+  var PEDIDO_CLIENTE = "";
+  var CESTA_CUENTA = 0;
 
-  // Paso 1: pulsar "Hacer pedido" -> pedir nombre del cliente
   function iniciarPedido() {
     document.getElementById("ped-nombre-cliente").value = "";
     document.getElementById("ped-notas").value = "";
@@ -845,7 +817,6 @@
     document.getElementById("modal-cliente").classList.add("abierto");
   }
 
-  // Paso 2: confirmar cliente -> crear el pedido (borrador) y abrir pantalla de pedido
   async function confirmarIniciarPedido() {
     var btn = document.getElementById("btn-iniciar-pedido");
     var msg = document.getElementById("cliente-msg");
@@ -875,7 +846,6 @@
     btn.disabled = false; btn.textContent = "Empezar pedido";
   }
 
-  // Mostrar la pantalla de pedido con los articulos del catalogo
   async function abrirPantallaPedido() {
     ocultarPantallas();
     document.getElementById("pantalla-pedido").style.display = "block";
@@ -916,7 +886,6 @@
     }
   }
 
-  // Cambiar la cantidad mostrada (antes de anadir)
   function cambiarCant(artId, delta) {
     var span = document.getElementById("cant-" + artId);
     var n = Number(span.textContent) + delta;
@@ -924,7 +893,6 @@
     span.textContent = n;
   }
 
-  // Anadir un articulo a la cesta del pedido (con la cantidad elegida)
   async function anadirAlPedido(artId) {
     var btn = document.getElementById("badd-" + artId);
     var cant = Number(document.getElementById("cant-" + artId).textContent) || 1;
@@ -951,7 +919,6 @@
     }
   }
 
-  // Ver la cesta (lo que llevamos en el pedido)
   async function verCesta() {
     document.getElementById("modal-cesta").classList.add("abierto");
     var cont = document.getElementById("cesta-contenido");
@@ -983,7 +950,6 @@
     }
   }
 
-  // Confirmar el pedido (cierra la cesta como pedido confirmado)
   async function confirmarPedido() {
     var btn = document.getElementById("btn-confirmar-pedido");
     var msg = document.getElementById("cesta-msg");
