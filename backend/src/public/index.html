@@ -91,6 +91,23 @@
   .art-check .info { flex: 1; }
   .art-check .info .nm { font-size: 14px; }
   .art-check .info .rf { font-size: 12px; color: var(--gris); }
+  /* Miniaturas de imagen */
+  .miniatura {
+    width: 52px; height: 52px; border-radius: 8px; object-fit: cover;
+    background: var(--fondo); border: 1px solid var(--borde); flex-shrink: 0;
+  }
+  .miniatura-vacia {
+    width: 52px; height: 52px; border-radius: 8px; flex-shrink: 0;
+    background: var(--fondo); border: 1px solid var(--borde);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px; color: #4a4f60;
+  }
+  .articulo-fila .izq { display: flex; align-items: center; gap: 14px; flex: 1; }
+  .preview-subida {
+    width: 90px; height: 90px; border-radius: 10px; object-fit: cover;
+    border: 1px solid var(--borde); margin-top: 8px; display: none;
+  }
+  .nota-imagen { font-size: 12px; color: var(--gris); margin-top: 6px; }
 </style>
 </head>
 <body>
@@ -201,6 +218,10 @@
       <input id="art-cat" type="text" placeholder="Ej: Analgésicos">
       <label>Descripción (opcional)</label>
       <textarea id="art-desc" rows="2" placeholder="Breve descripción del producto"></textarea>
+      <label>Imagen del producto (opcional)</label>
+      <input id="art-imagen" type="file" accept="image/jpeg,image/jpg,image/png,image/webp" onchange="previsualizarImagen()">
+      <div class="nota-imagen">JPG, PNG o WEBP · máximo 5 MB</div>
+      <img id="art-preview" class="preview-subida" alt="Vista previa">
       <div class="msg" id="crear-art-msg"></div>
       <div class="modal-botones">
         <button class="btn btn-sec" onclick="cerrarModal('modal-crear-art')">Cancelar</button>
@@ -399,9 +420,12 @@
         if (d.articles && d.articles.length > 0) {
           var html = "";
           d.articles.forEach(function(a) {
-            html += '<div class="articulo-fila"><div>' +
+            var img = a.image_path
+              ? '<img class="miniatura" src="' + escapar(a.image_path) + '" alt="">'
+              : '<div class="miniatura-vacia">📦</div>';
+            html += '<div class="articulo-fila"><div class="izq">' + img + '<div>' +
               '<div>' + escapar(a.name) + '</div>' +
-              '<div class="ref">' + escapar(a.reference || "") + '</div></div>' +
+              '<div class="ref">' + escapar(a.reference || "") + '</div></div></div>' +
               '<div class="precio">' + (a.pvpr ? a.pvpr + " €" : "-") + '</div></div>';
           });
           cont.innerHTML = html;
@@ -427,9 +451,12 @@
       if (arts.length > 0) {
         var html = "";
         arts.forEach(function(a) {
-          html += '<div class="articulo-fila"><div>' +
+          var img = a.image_path
+            ? '<img class="miniatura" src="' + escapar(a.image_path) + '" alt="">'
+            : '<div class="miniatura-vacia">📦</div>';
+          html += '<div class="articulo-fila"><div class="izq">' + img + '<div>' +
             '<div>' + escapar(a.name) + '</div>' +
-            '<div class="ref">' + escapar(a.reference || "") + ' · ' + escapar(a.category || "") + '</div></div>' +
+            '<div class="ref">' + escapar(a.reference || "") + ' · ' + escapar(a.category || "") + '</div></div></div>' +
             '<div class="precio">' + (a.pvpr ? a.pvpr + " €" : "-") + '</div></div>';
         });
         cont.innerHTML = html;
@@ -451,8 +478,22 @@
   }
   function abrirModalCrearArt() {
     ["art-nombre","art-ref","art-precio","art-cat","art-desc"].forEach(function(i){ document.getElementById(i).value = ""; });
+    document.getElementById("art-imagen").value = "";
+    var prev = document.getElementById("art-preview");
+    prev.style.display = "none"; prev.src = "";
     var m = document.getElementById("crear-art-msg"); m.className = "msg"; m.style.display = "none";
     document.getElementById("modal-crear-art").classList.add("abierto");
+  }
+  function previsualizarImagen() {
+    var input = document.getElementById("art-imagen");
+    var prev = document.getElementById("art-preview");
+    if (input.files && input.files[0]) {
+      var lector = new FileReader();
+      lector.onload = function(e) { prev.src = e.target.result; prev.style.display = "block"; };
+      lector.readAsDataURL(input.files[0]);
+    } else {
+      prev.style.display = "none"; prev.src = "";
+    }
   }
   async function abrirModalAnadirArts() {
     var m = document.getElementById("anadir-msg"); m.className = "msg"; m.style.display = "none";
@@ -515,9 +556,34 @@
     }
     btn.disabled = true; btn.textContent = "Creando...";
     try {
+      // Si hay imagen seleccionada, subirla primero
+      var imagePath = null;
+      var inputImg = document.getElementById("art-imagen");
+      if (inputImg.files && inputImg.files[0]) {
+        btn.textContent = "Subiendo imagen...";
+        var fd = new FormData();
+        fd.append("imagen", inputImg.files[0]);
+        var ri = await fetch(API + "/api/upload/image", {
+          method: "POST",
+          headers: { "Authorization": "Bearer " + TOKEN },
+          body: fd
+        });
+        var di = await ri.json();
+        if (di.success && di.image_path) {
+          imagePath = di.image_path;
+        } else {
+          msg.className = "msg error";
+          msg.textContent = "⚠️ No se pudo subir la imagen: " + (di.error || "error");
+          btn.disabled = false; btn.textContent = "Crear artículo";
+          return;
+        }
+      }
+      btn.textContent = "Creando...";
+      var cuerpo = { name: nombre, reference: ref, pvpr: Number(precio), category: cat, description: desc };
+      if (imagePath) cuerpo.image_path = imagePath;
       var r = await fetch(API + "/api/articles", {
         method: "POST", headers: { "Authorization": "Bearer " + TOKEN, "Content-Type": "application/json" },
-        body: JSON.stringify({ name: nombre, reference: ref, pvpr: Number(precio), category: cat, description: desc })
+        body: JSON.stringify(cuerpo)
       });
       var d = await r.json();
       if (d.success || d.article) { cerrarModal('modal-crear-art'); cargarArticulos(); }
@@ -613,12 +679,14 @@
     if (!num || Number(num) < 1) { msg.className = "msg error"; msg.textContent = "⚠️ Indica un número de lámina válido"; return; }
     btn.disabled = true; btn.textContent = "Comprobando...";
     try {
+      // Primero ver que la lamina existe y cuantos articulos tiene
       var ri = await fetch(API + "/api/catalogs/" + CAT_ACTUAL + "/sheets/" + num, { headers: { "Authorization": "Bearer " + TOKEN } });
       var di = await ri.json();
       if (!di.success || !di.sheet) {
         msg.className = "msg error"; msg.textContent = "⚠️ La lámina " + num + " no existe en este catálogo";
         btn.disabled = false; btn.textContent = "Continuar"; return;
       }
+      // Solicitar el borrado (paso 1 de la doble confirmacion)
       var rr = await fetch(API + "/api/catalogs/" + CAT_ACTUAL + "/sheets/" + num + "/delete-request", {
         method: "POST", headers: { "Authorization": "Bearer " + TOKEN, "Content-Type": "application/json" }, body: "{}"
       });
