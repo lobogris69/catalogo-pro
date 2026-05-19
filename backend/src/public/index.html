@@ -108,6 +108,42 @@
     border: 1px solid var(--borde); margin-top: 8px; display: none;
   }
   .nota-imagen { font-size: 12px; color: var(--gris); margin-top: 6px; }
+  /* Pedidos: cesta y cantidades */
+  .barra-pedido {
+    background: #10242a; border: 1px solid var(--azul); border-radius: 10px;
+    padding: 12px 18px; margin-bottom: 16px; display: flex;
+    align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;
+  }
+  .barra-pedido .info-ped { font-size: 14px; }
+  .barra-pedido .info-ped b { color: var(--azul); }
+  .cant-sel { display: flex; align-items: center; gap: 8px; }
+  .cant-sel button {
+    width: 32px; height: 32px; border-radius: 7px; border: 1px solid var(--borde);
+    background: var(--fondo); color: var(--texto); font-size: 18px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; padding: 0;
+  }
+  .cant-sel button:hover { background: var(--borde); }
+  .cant-sel .cant-num {
+    min-width: 38px; text-align: center; font-size: 15px; font-weight: 600;
+  }
+  .btn-anadir-art {
+    padding: 8px 16px; background: var(--azul); color: #fff; border: none;
+    border-radius: 7px; font-size: 13px; font-weight: 600; cursor: pointer; margin-left: 8px;
+  }
+  .btn-anadir-art:hover { background: var(--azul-osc); }
+  .btn-anadir-art.anadido { background: var(--verde); }
+  .fila-pedido { display: flex; justify-content: space-between; align-items: center;
+    padding: 14px 18px; border-bottom: 1px solid var(--borde); gap: 12px; }
+  .fila-pedido:last-child { border-bottom: none; }
+  .fila-pedido .acciones-art { display: flex; align-items: center; flex-shrink: 0; }
+  .cesta-item { display: flex; justify-content: space-between; align-items: center;
+    padding: 12px 16px; border-bottom: 1px solid var(--borde); }
+  .cesta-item:last-child { border-bottom: none; }
+  .cesta-total { padding: 16px; font-size: 16px; font-weight: 600; text-align: right; }
+  .badge-cesta {
+    display: inline-block; background: var(--azul); color: #fff;
+    border-radius: 20px; padding: 3px 11px; font-size: 13px; font-weight: 700; margin-left: 6px;
+  }
 </style>
 </head>
 <body>
@@ -160,12 +196,28 @@
         <div class="cab">
           <div><h2 id="det-nombre">Catálogo</h2><div class="sub" id="det-desc"></div></div>
           <div style="display:flex; gap:10px; flex-wrap:wrap;">
+            <button class="btn" onclick="iniciarPedido()" style="background:var(--verde);">🛒 Hacer pedido</button>
             <button class="btn btn-sec" onclick="abrirModalEliminar()">🗑️ Eliminar lámina</button>
             <button class="btn btn-sec" onclick="abrirModalEmail()">✉️ Enviar por email</button>
             <button class="btn" onclick="abrirModalAnadirArts()">+ Añadir artículos</button>
           </div>
         </div>
         <div id="det-articulos" class="lista-articulos"><div class="cargando">Cargando...</div></div>
+      </div>
+
+      <!-- PANTALLA DE PEDIDO (montar cesta) -->
+      <div id="pantalla-pedido" style="display:none;">
+        <button class="volver" onclick="volverDelPedido()">← Volver al catálogo</button>
+        <div class="cab">
+          <div><h2 id="ped-titulo">Pedido</h2><div class="sub" id="ped-sub"></div></div>
+          <button class="btn" onclick="verCesta()" style="background:var(--verde);">
+            🛒 Ver cesta <span class="badge-cesta" id="badge-cesta">0</span>
+          </button>
+        </div>
+        <div class="barra-pedido">
+          <div class="info-ped">Cliente: <b id="ped-cliente">-</b> · Elige productos y cantidades, luego pulsa "Ver cesta"</div>
+        </div>
+        <div id="ped-articulos" class="lista-articulos"><div class="cargando">Cargando artículos...</div></div>
       </div>
 
       <!-- LISTA ARTICULOS -->
@@ -265,6 +317,39 @@
     </div>
   </div>
 
+  <!-- MODAL NOMBRE DEL CLIENTE (iniciar pedido) -->
+  <div class="modal-fondo" id="modal-cliente">
+    <div class="modal">
+      <h3>🛒 Nuevo pedido</h3>
+      <div class="modal-sub">¿Para qué cliente es este pedido?</div>
+      <label>Nombre del cliente *</label>
+      <input id="ped-nombre-cliente" type="text" placeholder="Ej: Farmacia Central Donostia">
+      <label>Notas del pedido (opcional)</label>
+      <textarea id="ped-notas" rows="2" placeholder="Observaciones del pedido"></textarea>
+      <div class="msg" id="cliente-msg"></div>
+      <div class="modal-botones">
+        <button class="btn btn-sec" onclick="cerrarModal('modal-cliente')">Cancelar</button>
+        <button class="btn" id="btn-iniciar-pedido" onclick="confirmarIniciarPedido()">Empezar pedido</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL VER CESTA -->
+  <div class="modal-fondo" id="modal-cesta">
+    <div class="modal">
+      <h3>🛒 Cesta del pedido</h3>
+      <div class="modal-sub" id="cesta-sub">Revisa los artículos antes de confirmar</div>
+      <div id="cesta-contenido" style="max-height: 360px; overflow-y: auto; border: 1px solid var(--borde); border-radius: 9px;">
+        <div class="cargando">Cargando cesta...</div>
+      </div>
+      <div class="msg" id="cesta-msg"></div>
+      <div class="modal-botones">
+        <button class="btn btn-sec" onclick="cerrarModal('modal-cesta')">Seguir añadiendo</button>
+        <button class="btn" id="btn-confirmar-pedido" onclick="confirmarPedido()" style="background:var(--verde);">✅ Confirmar pedido</button>
+      </div>
+    </div>
+  </div>
+
   <!-- MODAL ELIMINAR LAMINA (doble confirmacion) -->
   <div class="modal-fondo" id="modal-eliminar">
     <div class="modal">
@@ -273,6 +358,7 @@
 
       <!-- Paso 1: elegir lamina -->
       <div id="elim-paso1">
+       <div id="elim-paso1">
         <label>Número de lámina a eliminar</label>
         <input id="elim-num" type="number" value="1" min="1">
         <div style="background:#3a1620; border:1px solid #a52f44; color:#f08098; padding:12px; border-radius:9px; font-size:13px; margin-top:14px;">
@@ -325,6 +411,7 @@
     document.getElementById("pantalla-catalogos").style.display = "none";
     document.getElementById("pantalla-detalle").style.display = "none";
     document.getElementById("pantalla-articulos").style.display = "none";
+    document.getElementById("pantalla-pedido").style.display = "none";
   }
   function navA(destino) {
     ocultarPantallas();
@@ -376,7 +463,8 @@
     document.getElementById("in-pass").value = "";
     mostrarLogin();
   }
- async function cargarCatalogos() {
+
+  async function cargarCatalogos() {
     var cont = document.getElementById("lista-catalogos");
     cont.innerHTML = '<div class="cargando">Cargando catálogos...</div>';
     try {
@@ -591,6 +679,7 @@
     } catch (ex) { msg.className = "msg error"; msg.textContent = "❌ Error: " + ex.message; }
     btn.disabled = false; btn.textContent = "Crear artículo";
   }
+ }
 
   async function anadirArticulosSeleccionados() {
     var btn = document.getElementById("btn-anadir");
@@ -741,6 +830,194 @@
       msg.className = "msg error"; msg.textContent = "❌ Error: " + ex.message;
     }
     btn.disabled = false; btn.textContent = "Confirmar eliminación";
+  }
+
+  // ===== PEDIDOS =====
+  var PEDIDO_ACTUAL = null;      // id del pedido en curso
+  var PEDIDO_CLIENTE = "";       // nombre del cliente
+  var CESTA_CUENTA = 0;          // nº de articulos anadidos a la cesta
+
+  // Paso 1: pulsar "Hacer pedido" -> pedir nombre del cliente
+  function iniciarPedido() {
+    document.getElementById("ped-nombre-cliente").value = "";
+    document.getElementById("ped-notas").value = "";
+    var m = document.getElementById("cliente-msg"); m.className = "msg"; m.style.display = "none";
+    document.getElementById("modal-cliente").classList.add("abierto");
+  }
+
+  // Paso 2: confirmar cliente -> crear el pedido (borrador) y abrir pantalla de pedido
+  async function confirmarIniciarPedido() {
+    var btn = document.getElementById("btn-iniciar-pedido");
+    var msg = document.getElementById("cliente-msg");
+    var cliente = document.getElementById("ped-nombre-cliente").value.trim();
+    var notas = document.getElementById("ped-notas").value.trim();
+    msg.className = "msg"; msg.style.display = "none";
+    if (!cliente) { msg.className = "msg error"; msg.textContent = "⚠️ El nombre del cliente es obligatorio"; return; }
+    btn.disabled = true; btn.textContent = "Creando pedido...";
+    try {
+      var r = await fetch(API + "/api/orders", {
+        method: "POST", headers: { "Authorization": "Bearer " + TOKEN, "Content-Type": "application/json" },
+        body: JSON.stringify({ catalog_id: CAT_ACTUAL, client_name: cliente, notes: notas })
+      });
+      var d = await r.json();
+      if (d.success && d.order) {
+        PEDIDO_ACTUAL = d.order.id;
+        PEDIDO_CLIENTE = cliente;
+        CESTA_CUENTA = 0;
+        cerrarModal('modal-cliente');
+        abrirPantallaPedido();
+      } else {
+        msg.className = "msg error"; msg.textContent = "⚠️ " + (d.error || "No se pudo crear el pedido");
+      }
+    } catch (ex) {
+      msg.className = "msg error"; msg.textContent = "❌ Error: " + ex.message;
+    }
+    btn.disabled = false; btn.textContent = "Empezar pedido";
+  }
+
+  // Mostrar la pantalla de pedido con los articulos del catalogo
+  async function abrirPantallaPedido() {
+    ocultarPantallas();
+    document.getElementById("pantalla-pedido").style.display = "block";
+    document.getElementById("ped-titulo").textContent = "Pedido para " + PEDIDO_CLIENTE;
+    document.getElementById("ped-sub").textContent = "Pedido nº " + PEDIDO_ACTUAL;
+    document.getElementById("ped-cliente").textContent = PEDIDO_CLIENTE;
+    document.getElementById("badge-cesta").textContent = CESTA_CUENTA;
+    var cont = document.getElementById("ped-articulos");
+    cont.innerHTML = '<div class="cargando">Cargando artículos...</div>';
+    try {
+      var r = await fetch(API + "/api/catalogs/" + CAT_ACTUAL, { headers: { "Authorization": "Bearer " + TOKEN } });
+      var d = await r.json();
+      if (d.success && d.articles && d.articles.length > 0) {
+        var html = "";
+        d.articles.forEach(function(a) {
+          var img = a.image_path
+            ? '<img class="miniatura" src="' + escapar(a.image_path) + '" alt="">'
+            : '<div class="miniatura-vacia">📦</div>';
+          html += '<div class="fila-pedido">' +
+            '<div class="izq" style="display:flex;align-items:center;gap:14px;flex:1;">' + img +
+            '<div><div>' + escapar(a.name) + '</div>' +
+            '<div class="ref">' + escapar(a.reference || "") + ' · ' + (a.pvpr ? a.pvpr + " €" : "-") + '</div></div></div>' +
+            '<div class="acciones-art">' +
+            '<div class="cant-sel">' +
+            '<button onclick="cambiarCant(' + a.id + ',-1)">−</button>' +
+            '<span class="cant-num" id="cant-' + a.id + '">1</span>' +
+            '<button onclick="cambiarCant(' + a.id + ',1)">+</button>' +
+            '</div>' +
+            '<button class="btn-anadir-art" id="badd-' + a.id + '" onclick="anadirAlPedido(' + a.id + ')">Añadir</button>' +
+            '</div></div>';
+        });
+        cont.innerHTML = html;
+      } else {
+        cont.innerHTML = '<div class="vacio">Este catálogo no tiene artículos para pedir.</div>';
+      }
+    } catch (ex) {
+      cont.innerHTML = '<div class="vacio">Error: ' + ex.message + '</div>';
+    }
+  }
+
+  // Cambiar la cantidad mostrada (antes de anadir)
+  function cambiarCant(artId, delta) {
+    var span = document.getElementById("cant-" + artId);
+    var n = Number(span.textContent) + delta;
+    if (n < 1) n = 1;
+    span.textContent = n;
+  }
+
+  // Anadir un articulo a la cesta del pedido (con la cantidad elegida)
+  async function anadirAlPedido(artId) {
+    var btn = document.getElementById("badd-" + artId);
+    var cant = Number(document.getElementById("cant-" + artId).textContent) || 1;
+    btn.disabled = true; btn.textContent = "...";
+    try {
+      var r = await fetch(API + "/api/orders/" + PEDIDO_ACTUAL + "/items", {
+        method: "POST", headers: { "Authorization": "Bearer " + TOKEN, "Content-Type": "application/json" },
+        body: JSON.stringify({ article_id: artId, quantity: cant })
+      });
+      var d = await r.json();
+      if (d.success) {
+        CESTA_CUENTA++;
+        document.getElementById("badge-cesta").textContent = CESTA_CUENTA;
+        btn.className = "btn-anadir-art anadido";
+        btn.textContent = "✓ Añadido";
+        setTimeout(function(){ btn.className = "btn-anadir-art"; btn.textContent = "Añadir"; btn.disabled = false; }, 1100);
+      } else {
+        btn.disabled = false; btn.textContent = "Añadir";
+        alert("No se pudo añadir: " + (d.error || "error"));
+      }
+    } catch (ex) {
+      btn.disabled = false; btn.textContent = "Añadir";
+      alert("Error: " + ex.message);
+    }
+  }
+
+  // Ver la cesta (lo que llevamos en el pedido)
+  async function verCesta() {
+    document.getElementById("modal-cesta").classList.add("abierto");
+    var cont = document.getElementById("cesta-contenido");
+    var msg = document.getElementById("cesta-msg"); msg.className = "msg"; msg.style.display = "none";
+    cont.innerHTML = '<div class="cargando">Cargando cesta...</div>';
+    document.getElementById("cesta-sub").textContent = "Pedido para " + PEDIDO_CLIENTE;
+    try {
+      var r = await fetch(API + "/api/orders/" + PEDIDO_ACTUAL, { headers: { "Authorization": "Bearer " + TOKEN } });
+      var d = await r.json();
+      if (d.success && d.order) {
+        var items = d.order.items || [];
+        if (items.length > 0) {
+          var html = "";
+          items.forEach(function(it) {
+            html += '<div class="cesta-item"><div>' +
+              '<div>' + escapar(it.name || "Artículo") + '</div>' +
+              '<div class="ref">' + escapar(it.reference || "") + '</div></div>' +
+              '<div class="precio">x ' + it.quantity + '</div></div>';
+          });
+          cont.innerHTML = html;
+        } else {
+          cont.innerHTML = '<div class="vacio">La cesta está vacía. Añade artículos primero.</div>';
+        }
+      } else {
+        cont.innerHTML = '<div class="vacio">' + (d.error || "Error al cargar la cesta") + '</div>';
+      }
+    } catch (ex) {
+      cont.innerHTML = '<div class="vacio">Error: ' + ex.message + '</div>';
+    }
+  }
+
+  // Confirmar el pedido (cierra la cesta como pedido confirmado)
+  async function confirmarPedido() {
+    var btn = document.getElementById("btn-confirmar-pedido");
+    var msg = document.getElementById("cesta-msg");
+    msg.className = "msg"; msg.style.display = "none";
+    if (CESTA_CUENTA === 0) {
+      msg.className = "msg error"; msg.textContent = "⚠️ La cesta está vacía, añade artículos antes de confirmar";
+      return;
+    }
+    btn.disabled = true; btn.textContent = "Confirmando...";
+    try {
+      var r = await fetch(API + "/api/orders/" + PEDIDO_ACTUAL + "/confirm", {
+        method: "POST", headers: { "Authorization": "Bearer " + TOKEN, "Content-Type": "application/json" }
+      });
+      var d = await r.json();
+      if (d.success) {
+        msg.className = "msg ok";
+        msg.textContent = "✅ Pedido confirmado correctamente para " + PEDIDO_CLIENTE;
+        setTimeout(function(){
+          cerrarModal('modal-cesta');
+          PEDIDO_ACTUAL = null; PEDIDO_CLIENTE = ""; CESTA_CUENTA = 0;
+          navA('catalogos');
+        }, 1800);
+      } else {
+        msg.className = "msg error"; msg.textContent = "⚠️ " + (d.error || "No se pudo confirmar");
+      }
+    } catch (ex) {
+      msg.className = "msg error"; msg.textContent = "❌ Error: " + ex.message;
+    }
+    btn.disabled = false; btn.textContent = "✅ Confirmar pedido";
+  }
+
+  function volverDelPedido() {
+    PEDIDO_ACTUAL = null; PEDIDO_CLIENTE = ""; CESTA_CUENTA = 0;
+    verCatalogo(CAT_ACTUAL);
   }
 
   function escapar(t) {
