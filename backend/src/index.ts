@@ -1,6 +1,6 @@
 /**
  * CatalogPRO - Backend API + Frontend
- * Servidor Express principal - Etapa 5A (frontend con login)
+ * Servidor Express principal - Etapa 6A (imagenes en articulos)
  */
 
 import express, { Express, Request, Response, NextFunction } from 'express';
@@ -11,6 +11,7 @@ import { Pool } from 'pg';
 import bcrypt from 'bcryptjs';
 import fs from 'fs';
 import path from 'path';
+import multer from 'multer';
 import { AuthService } from './services/AuthService';
 import { CatalogService } from './services/CatalogService';
 import { ArticleService } from './services/ArticleService';
@@ -63,6 +64,47 @@ app.use((req: Request, res: Response, next: NextFunction) => {
 // asi que el frontend se copia a dist/public en el build.
 const FRONTEND_DIR = path.join(__dirname, 'public');
 app.use(express.static(FRONTEND_DIR));
+
+// ============================================================================
+// IMAGENES: carpeta de subidas en VOLUMEN PERSISTENTE (no se borra al redesplegar)
+// ============================================================================
+// En Railway se monta un volumen en /app/data. Si existe la variable
+// UPLOADS_DIR se usa esa; si no, /app/data/uploads; en local, ./uploads.
+const UPLOADS_DIR = process.env.UPLOADS_DIR
+  || (fs.existsSync('/app/data') ? '/app/data/uploads' : path.join(process.cwd(), 'uploads'));
+
+try {
+  if (!fs.existsSync(UPLOADS_DIR)) {
+    fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+    console.log('Carpeta de imagenes creada:', UPLOADS_DIR);
+  } else {
+    console.log('Carpeta de imagenes:', UPLOADS_DIR);
+  }
+} catch (e) {
+  console.error('Aviso creando carpeta de imagenes:', (e as Error).message);
+}
+
+// Servir las imagenes subidas en /uploads/<archivo>
+app.use('/uploads', express.static(UPLOADS_DIR));
+
+// Configuracion de multer: guarda en UPLOADS_DIR con nombre unico, solo imagenes, max 5MB
+const almacenamiento = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, UPLOADS_DIR),
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname || '').toLowerCase() || '.jpg';
+    const nombre = 'art_' + Date.now() + '_' + Math.round(Math.random() * 1e9) + ext;
+    cb(null, nombre);
+  },
+});
+const subidaImagen = multer({
+  storage: almacenamiento,
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    const ok = /jpeg|jpg|png|webp/.test((file.mimetype || '').toLowerCase());
+    if (ok) cb(null, true);
+    else cb(new Error('Solo se permiten imagenes JPG, PNG o WEBP'));
+  },
+});
 
 app.get('/', (req: Request, res: Response) => {
   const indexPath = path.join(FRONTEND_DIR, 'index.html');
@@ -297,7 +339,6 @@ app.delete('/api/catalogs/:id', verifyToken, async (req: AuthRequest, res: Respo
     res.status(400).json({ success: false, error: (error as Error).message });
   }
 });
-
 // ============================================================================
 // RUTAS DE ELIMINAR LAMINAS (doble confirmacion, protegidas)
 // ============================================================================
@@ -385,6 +426,25 @@ app.get('/api/catalogs/:id/share/history', verifyToken, async (req: AuthRequest,
   } catch (error) {
     res.status(500).json({ success: false, error: (error as Error).message });
   }
+});
+
+// ============================================================================
+// RUTA SUBIR IMAGEN DE ARTICULO (protegida)
+// ============================================================================
+app.post('/api/upload/image', verifyToken, (req: AuthRequest, res: Response) => {
+  subidaImagen.single('imagen')(req, res, (err: any) => {
+    if (err) {
+      res.status(400).json({ success: false, error: err.message || 'Error subiendo imagen' });
+      return;
+    }
+    if (!req.file) {
+      res.status(400).json({ success: false, error: 'No se recibio ninguna imagen' });
+      return;
+    }
+    // Ruta publica que se guardara en articles.image_path
+    const rutaPublica = '/uploads/' + req.file.filename;
+    res.json({ success: true, image_path: rutaPublica });
+  });
 });
 
 app.use((req: Request, res: Response) => {
@@ -575,7 +635,7 @@ async function startServer() {
     console.log(`Servidor CatalogPRO ejecutandose en puerto ${PORT}`);
     console.log(`Environment: ${process.env.NODE_ENV || 'production'}`);
     console.log('');
-    console.log('Frontend en / | API en /api | Health en /health');
+    console.log('Frontend en / | API en /api | Imagenes en /uploads | Health en /health');
     console.log('');
   });
 }
