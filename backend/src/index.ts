@@ -42,7 +42,7 @@ const sheetDeleteService = new CatalogSheetDeleteService(pool);
 const shareService = new ShareService(pool);
 const orderService = new OrderService(pool);
 
-app.use(helmet());
+app.use(helmet({ contentSecurityPolicy: false }));
 // CORS: permite peticiones desde cualquier origen.
 app.use(cors({
   origin: true,
