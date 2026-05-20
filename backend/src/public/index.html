@@ -209,6 +209,38 @@
     padding: 14px 18px; margin: 12px 0; font-size: 13px;
   }
   .resumen-import b { color: var(--azul); }
+  .usuario-fila {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 14px 18px; border-bottom: 1px solid var(--borde); font-size: 14px; gap: 12px;
+  }
+  .usuario-fila:last-child { border-bottom: none; }
+  .usuario-fila .info-u { flex: 1; }
+  .usuario-fila .nm { font-weight: 600; font-size: 14px; margin-bottom: 4px; }
+  .usuario-fila .meta { color: var(--gris); font-size: 12px; }
+  .usuario-fila .rol-admin {
+    display: inline-block; background: var(--azul); color: #fff;
+    border-radius: 12px; padding: 2px 9px; font-size: 11px; font-weight: 700; margin-left: 8px;
+  }
+  .usuario-fila .rol-sales {
+    display: inline-block; background: #3a2e10; color: #e0c060;
+    border-radius: 12px; padding: 2px 9px; font-size: 11px; font-weight: 700; margin-left: 8px;
+  }
+  .usuario-fila .input-codigo {
+    width: 120px; padding: 8px 10px; background: var(--fondo);
+    border: 1px solid var(--borde); border-radius: 6px;
+    color: var(--texto); font-size: 13px;
+  }
+  .usuario-fila .btn-guardar-cod {
+    padding: 8px 14px; background: var(--azul); color: #fff; border: none;
+    border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer;
+  }
+  .usuario-fila .btn-guardar-cod:hover { background: var(--azul-osc); }
+  .usuario-fila .btn-guardar-cod.guardado { background: var(--verde); }
+  .info-admin {
+    background: #10242a; border: 1px solid var(--azul); border-radius: 10px;
+    padding: 14px 18px; margin-bottom: 16px; font-size: 13px; line-height: 1.6;
+  }
+  .info-admin b { color: var(--azul); }
 </style>
 </head>
 <body>
@@ -243,6 +275,7 @@
       <button id="nav-articulos" onclick="navA('articulos')">📦 Artículos</button>
       <button id="nav-clientes" onclick="navA('clientes')">👥 Clientes</button>
       <button id="nav-pedidos" onclick="navA('pedidos')">🛒 Pedidos</button>
+      <button id="nav-admin" onclick="navA('admin')" style="display:none;">⚙️ Admin</button>
     </div>
     <div class="contenido">
 
@@ -327,6 +360,16 @@
           <button class="btn" onclick="abrirModalCrearArt()">+ Nuevo artículo</button>
         </div>
         <div id="lista-articulos-todos" class="lista-articulos"><div class="cargando">Cargando artículos...</div></div>
+      </div>
+
+      <div id="pantalla-admin" style="display:none;">
+        <div class="cab">
+          <div><h2>Administración</h2><div class="sub">Asignar el código de comercial de Sage a cada usuario</div></div>
+        </div>
+        <div class="info-admin">
+          ℹ️ Cada cliente importado de Sage tiene un <b>código de comercial asignado</b> (la columna "Comercial asig." del Excel: 0, 1, 2, 6...). Aquí asignas a cada usuario comercial el código que le corresponde. Así, cuando ese comercial entre en CatalogPRO, solo verá <b>sus farmacias</b>. Si dejas el campo vacío, el comercial verá <b>todos los clientes</b>.
+        </div>
+        <div id="lista-usuarios-admin" class="lista-articulos"><div class="cargando">Cargando usuarios...</div></div>
       </div>
 
       <div id="pantalla-pedidos" style="display:none;">
@@ -573,6 +616,12 @@
     document.getElementById("vista-login").style.display = "none";
     document.getElementById("vista-app").style.display = "block";
     if (USER) document.getElementById("lbl-user").textContent = USER.name + " (" + USER.role + ")";
+    var btnAdmin = document.getElementById("nav-admin");
+    if (USER && USER.role === "admin") {
+      btnAdmin.style.display = "";
+    } else {
+      btnAdmin.style.display = "none";
+    }
     navA('catalogos');
   }
   function mostrarLogin() {
@@ -588,6 +637,7 @@
     document.getElementById("pantalla-detalle-pedido").style.display = "none";
     document.getElementById("pantalla-clientes").style.display = "none";
     document.getElementById("pantalla-detalle-cliente").style.display = "none";
+    document.getElementById("pantalla-admin").style.display = "none";
   }
   function navA(destino) {
     ocultarPantallas();
@@ -595,6 +645,7 @@
     document.getElementById("nav-articulos").classList.remove("activo");
     document.getElementById("nav-clientes").classList.remove("activo");
     document.getElementById("nav-pedidos").classList.remove("activo");
+    document.getElementById("nav-admin").classList.remove("activo");
     if (destino === 'catalogos') {
       document.getElementById("pantalla-catalogos").style.display = "block";
       document.getElementById("nav-catalogos").classList.add("activo");
@@ -611,6 +662,10 @@
       document.getElementById("pantalla-pedidos").style.display = "block";
       document.getElementById("nav-pedidos").classList.add("activo");
       cargarPedidos();
+    } else if (destino === 'admin') {
+      document.getElementById("pantalla-admin").style.display = "block";
+      document.getElementById("nav-admin").classList.add("activo");
+      cargarUsuariosAdmin();
     }
   }
 
@@ -1564,6 +1619,72 @@
     } catch (ex) {
       msg.className = "msg error"; msg.textContent = "❌ Error: " + ex.message;
       btn.disabled = false; btn.textContent = "Importar";
+    }
+  }
+
+  async function cargarUsuariosAdmin() {
+    var cont = document.getElementById("lista-usuarios-admin");
+    cont.innerHTML = '<div class="cargando">Cargando usuarios...</div>';
+    try {
+      var r = await fetch(API + "/api/users", { headers: { "Authorization": "Bearer " + TOKEN } });
+      if (r.status === 401) { cerrarSesion(); return; }
+      if (r.status === 403) {
+        cont.innerHTML = '<div class="vacio">Solo el administrador puede ver esta pantalla.</div>';
+        return;
+      }
+      var d = await r.json();
+      var users = d.users || [];
+      if (users.length === 0) {
+        cont.innerHTML = '<div class="vacio">No hay usuarios.</div>';
+        return;
+      }
+      var html = "";
+      users.forEach(function(u) {
+        var badgeRol = u.role === "admin"
+          ? '<span class="rol-admin">ADMIN</span>'
+          : '<span class="rol-sales">COMERCIAL</span>';
+        var codigoActual = u.sage_commercial_code || "";
+        html += '<div class="usuario-fila">' +
+          '<div class="info-u">' +
+          '<div class="nm">' + escapar(u.name) + badgeRol + '</div>' +
+          '<div class="meta">' + escapar(u.email) + '</div>' +
+          '</div>' +
+          '<div style="display:flex; gap:8px; align-items:center;">' +
+          '<label style="font-size:12px; color:var(--gris); margin:0;">Código Sage:</label>' +
+          '<input class="input-codigo" id="cod-u-' + u.id + '" type="text" value="' + escapar(codigoActual) + '" placeholder="ej: 6">' +
+          '<button class="btn-guardar-cod" id="btn-cod-' + u.id + '" onclick="guardarCodigoUsuario(' + u.id + ')">Guardar</button>' +
+          '</div>' +
+          '</div>';
+      });
+      cont.innerHTML = html;
+    } catch (ex) {
+      cont.innerHTML = '<div class="vacio">Error al cargar: ' + ex.message + '</div>';
+    }
+  }
+
+  async function guardarCodigoUsuario(userId) {
+    var input = document.getElementById("cod-u-" + userId);
+    var btn = document.getElementById("btn-cod-" + userId);
+    var codigo = (input.value || "").trim();
+    btn.disabled = true; btn.textContent = "Guardando...";
+    try {
+      var r = await fetch(API + "/api/users/" + userId + "/sage-code", {
+        method: "PUT",
+        headers: { "Authorization": "Bearer " + TOKEN, "Content-Type": "application/json" },
+        body: JSON.stringify({ sage_commercial_code: codigo || null })
+      });
+      var d = await r.json();
+      if (d.success) {
+        btn.className = "btn-guardar-cod guardado";
+        btn.textContent = "✓ Guardado";
+        setTimeout(function(){ btn.className = "btn-guardar-cod"; btn.textContent = "Guardar"; btn.disabled = false; }, 1500);
+      } else {
+        btn.disabled = false; btn.textContent = "Guardar";
+        alert("No se pudo guardar: " + (d.error || "error"));
+      }
+    } catch (ex) {
+      btn.disabled = false; btn.textContent = "Guardar";
+      alert("Error: " + ex.message);
     }
   }
 
