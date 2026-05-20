@@ -183,6 +183,32 @@
     background: var(--fondo); border: 1px solid var(--borde);
     border-radius: 8px; color: var(--texto); font-size: 14px;
   }
+  .filtro-bar {
+    display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap;
+  }
+  .filtro-bar input.buscar {
+    flex: 1; min-width: 220px;
+    padding: 10px 14px; background: var(--fondo);
+    border: 1px solid var(--borde); border-radius: 8px;
+    color: var(--texto); font-size: 14px;
+  }
+  .filtro-bar input.buscar:focus { outline: none; border-color: var(--azul); }
+  .cliente-fila {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 14px 18px; border-bottom: 1px solid var(--borde); font-size: 14px; gap: 12px;
+  }
+  .cliente-fila:last-child { border-bottom: none; }
+  .cliente-fila .nm { font-weight: 600; font-size: 14px; margin-bottom: 4px; }
+  .cliente-fila .meta { color: var(--gris); font-size: 12px; }
+  .cliente-fila .badge-nuevo {
+    display: inline-block; background: var(--verde); color: #fff;
+    border-radius: 12px; padding: 2px 9px; font-size: 11px; font-weight: 700; margin-left: 8px;
+  }
+  .resumen-import {
+    background: #10242a; border: 1px solid var(--azul); border-radius: 10px;
+    padding: 14px 18px; margin: 12px 0; font-size: 13px;
+  }
+  .resumen-import b { color: var(--azul); }
 </style>
 </head>
 <body>
@@ -215,6 +241,7 @@
     <div class="nav">
       <button id="nav-catalogos" class="activo" onclick="navA('catalogos')">📋 Catálogos</button>
       <button id="nav-articulos" onclick="navA('articulos')">📦 Artículos</button>
+      <button id="nav-clientes" onclick="navA('clientes')">👥 Clientes</button>
       <button id="nav-pedidos" onclick="navA('pedidos')">🛒 Pedidos</button>
     </div>
     <div class="contenido">
@@ -271,6 +298,27 @@
             + Añadir devolución
           </button>
         </div>
+      </div>
+
+      <div id="pantalla-clientes" style="display:none;">
+        <div class="cab">
+          <div><h2>Clientes</h2><div class="sub">Farmacias clientes de LOMHIFAR (importados de Sage + altas en visita)</div></div>
+          <div style="display:flex; gap:10px; flex-wrap:wrap;">
+            <button class="btn" onclick="abrirModalImportarClientes()" style="background:var(--azul);">📥 Importar desde Sage</button>
+          </div>
+        </div>
+        <div class="filtro-bar">
+          <input id="cli-buscar" type="text" class="buscar" placeholder="Buscar por nombre, CIF, municipio..." oninput="filtrarClientes()">
+        </div>
+        <div id="lista-clientes-cont" class="lista-articulos"><div class="cargando">Cargando clientes...</div></div>
+      </div>
+
+      <div id="pantalla-detalle-cliente" style="display:none;">
+        <button class="volver" onclick="navA('clientes')">← Volver a clientes</button>
+        <div class="cab">
+          <div><h2 id="dc-titulo">Cliente</h2><div class="sub" id="dc-sub"></div></div>
+        </div>
+        <div id="dc-contenido" class="lista-articulos"><div class="cargando">Cargando...</div></div>
       </div>
 
       <div id="pantalla-articulos" style="display:none;">
@@ -461,7 +509,24 @@
     </div>
   </div>
 
-  <div class="modal-fondo" id="modal-eliminar">
+  <div class="modal-fondo" id="modal-importar-cli">
+    <div class="modal" style="max-width: 540px;">
+      <h3>📥 Importar clientes desde Sage</h3>
+      <div class="modal-sub">Sube el Excel exportado de Sage. Los clientes BAJA- se ignoran automáticamente.</div>
+
+      <label>Archivo Excel (.xlsx) *</label>
+      <input id="cli-excel" type="file" accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel">
+      <div class="nota-imagen">Columnas esperadas: Cód. cliente, Razón social, CIF/DNI, Teléfono, Municipio, Provincia, Comercial asig., Cód. contable, Categoría, Correo Electrónico1</div>
+
+      <div id="cli-resumen-import" style="display:none;"></div>
+
+      <div class="msg" id="cli-import-msg"></div>
+      <div class="modal-botones">
+        <button class="btn btn-sec" onclick="cerrarModal('modal-importar-cli')">Cancelar</button>
+        <button class="btn" id="btn-importar-cli" onclick="importarClientes()">Importar</button>
+      </div>
+    </div>
+  </div><div class="modal-fondo" id="modal-eliminar">
     <div class="modal">
       <h3>🗑️ Eliminar lámina</h3>
       <div class="modal-sub">Esta acción borra de forma permanente todos los artículos de una lámina del catálogo</div>
@@ -521,11 +586,14 @@
     document.getElementById("pantalla-pedido").style.display = "none";
     document.getElementById("pantalla-pedidos").style.display = "none";
     document.getElementById("pantalla-detalle-pedido").style.display = "none";
+    document.getElementById("pantalla-clientes").style.display = "none";
+    document.getElementById("pantalla-detalle-cliente").style.display = "none";
   }
   function navA(destino) {
     ocultarPantallas();
     document.getElementById("nav-catalogos").classList.remove("activo");
     document.getElementById("nav-articulos").classList.remove("activo");
+    document.getElementById("nav-clientes").classList.remove("activo");
     document.getElementById("nav-pedidos").classList.remove("activo");
     if (destino === 'catalogos') {
       document.getElementById("pantalla-catalogos").style.display = "block";
@@ -535,6 +603,10 @@
       document.getElementById("pantalla-articulos").style.display = "block";
       document.getElementById("nav-articulos").classList.add("activo");
       cargarArticulos();
+    } else if (destino === 'clientes') {
+      document.getElementById("pantalla-clientes").style.display = "block";
+      document.getElementById("nav-clientes").classList.add("activo");
+      cargarClientes();
     } else if (destino === 'pedidos') {
       document.getElementById("pantalla-pedidos").style.display = "block";
       document.getElementById("nav-pedidos").classList.add("activo");
@@ -668,7 +740,9 @@
     } catch (ex) {
       cont.innerHTML = '<div class="vacio">Error al cargar: ' + ex.message + '</div>';
     }
-  }function cerrarModal(id) { document.getElementById(id).classList.remove("abierto"); }
+  }
+
+  function cerrarModal(id) { document.getElementById(id).classList.remove("abierto"); }
 
   function abrirModalCrearCat() {
     document.getElementById("nuevo-cat-nombre").value = "";
@@ -820,9 +894,7 @@
       msg.className = "msg error";
       msg.textContent = "⚠️ No se añadió ninguno (puede que ya estuvieran en el catálogo)";
     }
-  }
-
-  function abrirModalEmail() {
+  }function abrirModalEmail() {
     document.getElementById("em-dest").value = "";
     document.getElementById("em-nombre").value = "";
     document.getElementById("em-msg").value = "";
@@ -1324,7 +1396,7 @@
   }
 
   function elegirProductoDev(artId) {
-   var idNum = Number(artId);
+    var idNum = Number(artId);
     var prod = PROD_MAESTRO_TODOS.find(function(a){ return Number(a.id) === idNum; });
     if (!prod) return;
     DEV_PROD_ELEGIDO = prod;
@@ -1381,6 +1453,117 @@
       }
     } catch (ex) {
       alert("Error: " + ex.message);
+    }
+  }
+
+  var CLIENTES_TODOS = [];
+
+  async function cargarClientes() {
+    var cont = document.getElementById("lista-clientes-cont");
+    cont.innerHTML = '<div class="cargando">Cargando clientes...</div>';
+    try {
+      var r = await fetch(API + "/api/clients", { headers: { "Authorization": "Bearer " + TOKEN } });
+      if (r.status === 401) { cerrarSesion(); return; }
+      var d = await r.json();
+      CLIENTES_TODOS = d.clients || [];
+      pintarClientes(CLIENTES_TODOS);
+    } catch (ex) {
+      cont.innerHTML = '<div class="vacio">Error al cargar: ' + ex.message + '</div>';
+    }
+  }
+
+  function pintarClientes(lista) {
+    var cont = document.getElementById("lista-clientes-cont");
+    if (!lista || lista.length === 0) {
+      cont.innerHTML = '<div class="vacio">No hay clientes todavía.<br>Pulsa "📥 Importar desde Sage" para subir el Excel con los clientes.</div>';
+      return;
+    }
+    var html = "";
+    lista.forEach(function(c) {
+      var nuevo = c.is_new_from_visit ? '<span class="badge-nuevo">🆕 NUEVO</span>' : '';
+      var ubi = "";
+      if (c.municipio) ubi += escapar(c.municipio);
+      if (c.provincia) ubi += (ubi ? " · " : "") + escapar(c.provincia);
+      if (!ubi) ubi = "Sin ubicación";
+      var metaExtra = [];
+      if (c.cif) metaExtra.push("CIF " + escapar(c.cif));
+      if (c.sage_code) metaExtra.push("Sage #" + escapar(c.sage_code));
+      if (c.commercial_code) metaExtra.push("Com. " + escapar(c.commercial_code));
+      var meta2 = metaExtra.join(" · ");
+      html += '<div class="cliente-fila"><div style="flex:1;">' +
+        '<div class="nm">' + escapar(c.razon_social) + nuevo + '</div>' +
+        '<div class="meta">' + ubi + (meta2 ? ' · ' + meta2 : '') + '</div>' +
+        '</div></div>';
+    });
+    cont.innerHTML = html;
+  }
+
+  function filtrarClientes() {
+    var q = (document.getElementById("cli-buscar").value || "").toLowerCase().trim();
+    if (!q) { pintarClientes(CLIENTES_TODOS); return; }
+    var filtrados = CLIENTES_TODOS.filter(function(c) {
+      var campos = [c.razon_social, c.cif, c.municipio, c.provincia, c.sage_code, c.commercial_code];
+      return campos.some(function(v) { return v && String(v).toLowerCase().indexOf(q) !== -1; });
+    });
+    pintarClientes(filtrados);
+  }
+
+  function abrirModalImportarClientes() {
+    document.getElementById("cli-excel").value = "";
+    document.getElementById("cli-resumen-import").style.display = "none";
+    document.getElementById("cli-resumen-import").innerHTML = "";
+    var m = document.getElementById("cli-import-msg"); m.className = "msg"; m.style.display = "none";
+    document.getElementById("btn-importar-cli").disabled = false;
+    document.getElementById("btn-importar-cli").textContent = "Importar";
+    document.getElementById("modal-importar-cli").classList.add("abierto");
+  }
+
+  async function importarClientes() {
+    var btn = document.getElementById("btn-importar-cli");
+    var msg = document.getElementById("cli-import-msg");
+    var resumen = document.getElementById("cli-resumen-import");
+    var input = document.getElementById("cli-excel");
+    msg.className = "msg"; msg.style.display = "none";
+    resumen.style.display = "none";
+    if (!input.files || !input.files[0]) {
+      msg.className = "msg error"; msg.textContent = "⚠️ Elige primero el Excel de Sage";
+      return;
+    }
+    btn.disabled = true; btn.textContent = "Importando... (puede tardar)";
+    try {
+      var fd = new FormData();
+      fd.append("excel", input.files[0]);
+      var r = await fetch(API + "/api/clients/import", {
+        method: "POST",
+        headers: { "Authorization": "Bearer " + TOKEN },
+        body: fd
+      });
+      var d = await r.json();
+      if (d.success && d.resumen) {
+        var res = d.resumen;
+        resumen.innerHTML = '<div class="resumen-import">' +
+          '<div>📊 <b>Resultado de la importación:</b></div>' +
+          '<div style="margin-top:8px;">' +
+          '• <b>' + res.total_filas + '</b> filas leídas del Excel<br>' +
+          '• <b style="color:#5ed98a;">' + res.insertados + '</b> clientes nuevos insertados<br>' +
+          '• <b style="color:#5cc7d8;">' + res.actualizados + '</b> clientes actualizados<br>' +
+          '• <b style="color:#e0c060;">' + res.ignorados_baja + '</b> ignorados (BAJA-)<br>' +
+          (res.errores > 0 ? '• <b style="color:#f08098;">' + res.errores + '</b> errores<br>' : '') +
+          '</div></div>';
+        resumen.style.display = "block";
+        msg.className = "msg ok";
+        msg.textContent = "✅ Importación completada correctamente";
+        await cargarClientes();
+        btn.textContent = "Cerrar";
+        btn.disabled = false;
+        btn.onclick = function() { cerrarModal('modal-importar-cli'); btn.onclick = importarClientes; };
+      } else {
+        msg.className = "msg error"; msg.textContent = "⚠️ " + (d.error || "No se pudo importar");
+        btn.disabled = false; btn.textContent = "Importar";
+      }
+    } catch (ex) {
+      msg.className = "msg error"; msg.textContent = "❌ Error: " + ex.message;
+      btn.disabled = false; btn.textContent = "Importar";
     }
   }
 
