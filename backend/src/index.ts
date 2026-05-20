@@ -323,7 +323,8 @@ app.post('/api/catalogs/:id/publish', verifyToken, async (req: AuthRequest, res:
   } catch (error) {
     res.status(400).json({ success: false, error: (error as Error).message });
   }
-});// Anadir articulo a catalogo
+});
+
 app.post('/api/catalogs/:id/articles', verifyToken, async (req: AuthRequest, res: Response) => {
   try {
     const { article_id, display_order, sheet_number } = req.body;
@@ -339,7 +340,6 @@ app.post('/api/catalogs/:id/articles', verifyToken, async (req: AuthRequest, res
   }
 });
 
-// Eliminar catalogo
 app.delete('/api/catalogs/:id', verifyToken, async (req: AuthRequest, res: Response) => {
   try {
     if (!req.user) { res.status(401).json({ success: false, error: 'Unauthorized' }); return; }
@@ -351,10 +351,13 @@ app.delete('/api/catalogs/:id', verifyToken, async (req: AuthRequest, res: Respo
 });
 
 // ============================================================================
-// RUTAS DE ELIMINAR LAMINAS (doble confirmacion, protegidas)
+// MANEJO DE ERRORES
 // ============================================================================
 
-app.get('/api/catalogs/:id/sheets/:num', verifyToken, async (req: AuthRequest, res: Response) => {
+
+// ============================================================================
+// RUTAS DE ELIMINAR LAMINAS (doble confirmacion, protegidas)
+// ============================================================================app.get('/api/catalogs/:id/sheets/:num', verifyToken, async (req: AuthRequest, res: Response) => {
   try {
     const info = await sheetDeleteService.getSheetInfo(Number(req.params.id), Number(req.params.num));
     if (!info) { res.status(404).json({ success: false, error: 'Sheet not found' }); return; }
@@ -623,7 +626,8 @@ app.post('/api/orders/:id/returns', verifyToken, async (req: AuthRequest, res: R
   } catch (error) {
     res.status(400).json({ success: false, error: (error as Error).message });
   }
-});// Modificar una devolucion
+});
+
 app.put('/api/orders/:id/returns/:returnId', verifyToken, async (req: AuthRequest, res: Response) => {
   try {
     if (!req.user) { res.status(401).json({ success: false, error: 'Unauthorized' }); return; }
@@ -673,7 +677,6 @@ app.put('/api/orders/:id/returns/:returnId', verifyToken, async (req: AuthReques
   }
 });
 
-// Eliminar una devolucion
 app.delete('/api/orders/:id/returns/:returnId', verifyToken, async (req: AuthRequest, res: Response) => {
   try {
     if (!req.user) { res.status(401).json({ success: false, error: 'Unauthorized' }); return; }
@@ -693,13 +696,10 @@ app.delete('/api/orders/:id/returns/:returnId', verifyToken, async (req: AuthReq
   }
 });
 
+// ============================================================================// RUTAS DE CLIENTES (clients)
 // ============================================================================
-// RUTAS DE CLIENTES (clients)
-// ============================================================================
-// Importar la libreria xlsx (Excel) para procesar archivos de Sage
 import * as XLSX from 'xlsx';
 
-// Multer configurado para aceptar archivos Excel (memoria, no disco)
 const subidaExcel = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 5 * 1024 * 1024 },
@@ -713,7 +713,6 @@ const subidaExcel = multer({
   }
 });
 
-// Listar clientes (con filtro por comercial)
 app.get('/api/clients', verifyToken, async (req: AuthRequest, res: Response) => {
   try {
     if (!req.user) { res.status(401).json({ success: false, error: 'Unauthorized' }); return; }
@@ -743,7 +742,6 @@ app.get('/api/clients', verifyToken, async (req: AuthRequest, res: Response) => 
   }
 });
 
-// Crear cliente NUEVO (alta desde una visita en farmacia que aun no esta en Sage)
 app.post('/api/clients', verifyToken, async (req: AuthRequest, res: Response) => {
   try {
     if (!req.user) { res.status(401).json({ success: false, error: 'Unauthorized' }); return; }
@@ -779,7 +777,6 @@ app.post('/api/clients', verifyToken, async (req: AuthRequest, res: Response) =>
   }
 });
 
-// Importar clientes desde Excel de Sage (solo admin)
 app.post('/api/clients/import', verifyToken, (req: AuthRequest, res: Response) => {
   subidaExcel.single('excel')(req, res, async (err: any) => {
     try {
@@ -873,9 +870,62 @@ app.post('/api/clients/import', verifyToken, (req: AuthRequest, res: Response) =
   });
 });
 
-// ============================================================================// RUTA SUBIR IMAGEN DE ARTICULO (protegida)
 // ============================================================================
-app.post('/api/upload/image', verifyToken, (req: AuthRequest, res: Response) => {
+// RUTAS DE USUARIOS (admin) - asignar sage_commercial_code
+// ============================================================================
+app.get('/api/users', verifyToken, async (req: AuthRequest, res: Response) => {
+  try {
+    if (!req.user) { res.status(401).json({ success: false, error: 'Unauthorized' }); return; }
+    if (req.user.role !== 'admin') {
+      res.status(403).json({ success: false, error: 'Solo el admin puede ver la lista de usuarios' });
+      return;
+    }
+    const r = await pool.query(
+      'SELECT id, email, name, role, is_active, sage_commercial_code, created_at FROM users ORDER BY role DESC, name ASC'
+    );
+    res.json({ success: true, users: r.rows });
+  } catch (error) {
+    res.status(500).json({ success: false, error: (error as Error).message });
+  }
+});
+
+app.put('/api/users/:id/sage-code', verifyToken, async (req: AuthRequest, res: Response) => {
+  try {
+    if (!req.user) { res.status(401).json({ success: false, error: 'Unauthorized' }); return; }
+    if (req.user.role !== 'admin') {
+      res.status(403).json({ success: false, error: 'Solo el admin puede modificar codigos de comercial' });
+      return;
+    }
+    const userId = Number(req.params.id);
+    const { sage_commercial_code } = req.body || {};
+    let valor: string | null = null;
+    if (sage_commercial_code !== null && sage_commercial_code !== undefined) {
+      const v = String(sage_commercial_code).trim();
+      if (v.length > 0) {
+        if (v.length > 30) {
+          res.status(400).json({ success: false, error: 'El codigo es demasiado largo (max 30 caracteres)' });
+          return;
+        }
+        valor = v;
+      }
+    }
+    const upd = await pool.query(
+      'UPDATE users SET sage_commercial_code = $1 WHERE id = $2 RETURNING id, email, name, role, sage_commercial_code',
+      [valor, userId]
+    );
+    if (upd.rows.length === 0) {
+      res.status(404).json({ success: false, error: 'Usuario no encontrado' });
+      return;
+    }
+    res.json({ success: true, user: upd.rows[0] });
+  } catch (error) {
+    res.status(400).json({ success: false, error: (error as Error).message });
+  }
+});
+
+// ============================================================================
+// RUTA SUBIR IMAGEN DE ARTICULO (protegida)
+// ============================================================================app.post('/api/upload/image', verifyToken, (req: AuthRequest, res: Response) => {
   subidaImagen.single('imagen')(req, res, (err: any) => {
     if (err) {
       res.status(400).json({ success: false, error: err.message || 'Error subiendo imagen' });
