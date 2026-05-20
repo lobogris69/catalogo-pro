@@ -341,9 +341,7 @@ app.post('/api/catalogs/:id/publish', verifyToken, async (req: AuthRequest, res:
   } catch (error) {
     res.status(400).json({ success: false, error: (error as Error).message });
   }
-});
-
-// Anadir articulo a catalogo
+});// Anadir articulo a catalogo
 app.post('/api/catalogs/:id/articles', verifyToken, async (req: AuthRequest, res: Response) => {
   try {
     const { article_id, display_order, sheet_number } = req.body;
@@ -427,6 +425,7 @@ app.post('/api/catalogs/delete-cancel', verifyToken, async (req: AuthRequest, re
     res.status(400).json({ success: false, error: (error as Error).message });
   }
 });
+
 // Ver solicitudes de eliminacion pendientes del usuario
 app.get('/api/catalogs/delete-requests/pending', verifyToken, async (req: AuthRequest, res: Response) => {
   try {
@@ -587,6 +586,152 @@ app.post('/api/orders/:id/sent', verifyToken, async (req: AuthRequest, res: Resp
     if (!req.user) { res.status(401).json({ success: false, error: 'Unauthorized' }); return; }
     const pedido = await orderService.markOrderAsSent(Number(req.params.id), req.user.id);
     res.json({ success: true, order: pedido });
+  } catch (error) {
+    res.status(400).json({ success: false, error: (error as Error).message });
+  }
+});
+
+// ============================================================================
+// RUTAS DEVOLUCIONES (returns) - parte de la Nota de visita
+// ============================================================================
+
+// Listar devoluciones de un pedido/visita
+app.get('/api/orders/:id/returns', verifyToken, async (req: AuthRequest, res: Response) => {
+  try {
+    if (!req.user) { res.status(401).json({ success: false, error: 'Unauthorized' }); return; }
+    const orderId = Number(req.params.id);
+    const r = await pool.query(
+      `SELECT rt.id, rt.order_id, rt.article_id, rt.quantity, rt.state, rt.action, rt.notes,
+              rt.created_at, rt.updated_at,
+              a.name, a.reference
+       FROM returns rt
+       LEFT JOIN articles a ON a.id = rt.article_id
+       WHERE rt.order_id = $1
+       ORDER BY rt.id ASC`,
+      [orderId]
+    );
+    res.json({ success: true, returns: r.rows });
+  } catch (error) {
+    res.status(400).json({ success: false, error: (error as Error).message });
+  }
+});
+
+// Añadir una devolución a un pedido/visita
+app.post('/api/orders/:id/returns', verifyToken, async (req: AuthRequest, res: Response) => {
+  try {
+    if (!req.user) { res.status(401).json({ success: false, error: 'Unauthorized' }); return; }
+    const orderId = Number(req.params.id);
+    const { article_id, quantity, state, action, notes } = req.body || {};
+    if (!article_id || !quantity || !state || !action) {
+      res.status(400).json({ success: false, error: 'Faltan campos obligatorios: article_id, quantity, state, action' });
+      return;
+    }
+    const estadosValidos = ['caducado','defectuoso','confundido','no_rota','otro'];
+    const accionesValidas = ['abonar','cambio_mismo','cambio_otra','solo_retirar'];
+    if (!estadosValidos.includes(state)) {
+      res.status(400).json({ success: false, error: 'Estado no valido' });
+      return;
+    }
+    if (!accionesValidas.includes(action)) {
+      res.status(400).json({ success: false, error: 'Accion no valida' });
+      return;
+    }
+    const cant = Number(quantity);
+    if (!cant || cant < 1) {
+      res.status(400).json({ success: false, error: 'La cantidad debe ser mayor que 0' });
+      return;
+    }
+    // Comprobar que el pedido existe
+    const chkOrder = await pool.query('SELECT id FROM orders WHERE id = $1', [orderId]);
+    if (chkOrder.rows.length === 0) {
+      res.status(404).json({ success: false, error: 'Pedido no encontrado' });
+      return;
+    }
+    // Comprobar que el articulo existe
+    const chkArt = await pool.query('SELECT id, name, reference FROM articles WHERE id = $1', [Number(article_id)]);
+    if (chkArt.rows.length === 0) {
+      res.status(404).json({ success: false, error: 'Article not found' });
+      return;
+    }
+    const ins = await pool.query(
+      `INSERT INTO returns (order_id, article_id, quantity, state, action, notes, created_by)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
+       RETURNING id, order_id, article_id, quantity, state, action, notes, created_at`,
+      [orderId, Number(article_id), cant, state, action, notes || null, req.user.id]
+    );
+    const ret = ins.rows[0];
+    ret.name = chkArt.rows[0].name;
+    ret.reference = chkArt.rows[0].reference;
+    res.json({ success: true, return: ret });
+  } catch (error) {
+    res.status(400).json({ success: false, error: (error as Error).message });
+  }
+});// Modificar una devolucion
+app.put('/api/orders/:id/returns/:returnId', verifyToken, async (req: AuthRequest, res: Response) => {
+  try {
+    if (!req.user) { res.status(401).json({ success: false, error: 'Unauthorized' }); return; }
+    const orderId = Number(req.params.id);
+    const returnId = Number(req.params.returnId);
+    const { quantity, state, action, notes } = req.body || {};
+    // Comprobar que la devolucion existe en ese pedido
+    const chk = await pool.query('SELECT id FROM returns WHERE id = $1 AND order_id = $2', [returnId, orderId]);
+    if (chk.rows.length === 0) {
+      res.status(404).json({ success: false, error: 'Devolucion no encontrada' });
+      return;
+    }
+    const estadosValidos = ['caducado','defectuoso','confundido','no_rota','otro'];
+    const accionesValidas = ['abonar','cambio_mismo','cambio_otra','solo_retirar'];
+    if (state !== undefined && !estadosValidos.includes(state)) {
+      res.status(400).json({ success: false, error: 'Estado no valido' });
+      return;
+    }
+    if (action !== undefined && !accionesValidas.includes(action)) {
+      res.status(400).json({ success: false, error: 'Accion no valida' });
+      return;
+    }
+    if (quantity !== undefined) {
+      const cant = Number(quantity);
+      if (!cant || cant < 1) {
+        res.status(400).json({ success: false, error: 'La cantidad debe ser mayor que 0' });
+        return;
+      }
+    }
+    const upd = await pool.query(
+      `UPDATE returns
+       SET quantity = COALESCE($1, quantity),
+           state = COALESCE($2, state),
+           action = COALESCE($3, action),
+           notes = COALESCE($4, notes),
+           updated_at = CURRENT_TIMESTAMP
+       WHERE id = $5 AND order_id = $6
+       RETURNING id, order_id, article_id, quantity, state, action, notes, updated_at`,
+      [quantity !== undefined ? Number(quantity) : null,
+       state !== undefined ? state : null,
+       action !== undefined ? action : null,
+       notes !== undefined ? notes : null,
+       returnId, orderId]
+    );
+    res.json({ success: true, return: upd.rows[0] });
+  } catch (error) {
+    res.status(400).json({ success: false, error: (error as Error).message });
+  }
+});
+
+// Eliminar una devolucion
+app.delete('/api/orders/:id/returns/:returnId', verifyToken, async (req: AuthRequest, res: Response) => {
+  try {
+    if (!req.user) { res.status(401).json({ success: false, error: 'Unauthorized' }); return; }
+    const orderId = Number(req.params.id);
+    const returnId = Number(req.params.returnId);
+    const del = await pool.query(
+      'DELETE FROM returns WHERE id = $1 AND order_id = $2 RETURNING id',
+      [returnId, orderId]
+    );
+    if (del.rows.length === 0) {
+      res.status(404).json({ success: false, error: 'Devolucion no encontrada' });
+      return;
+    }
+    res.json({ success: true, deleted: del.rows[0].id });
   } catch (error) {
     res.status(400).json({ success: false, error: (error as Error).message });
   }
@@ -806,6 +951,42 @@ async function asegurarTablasEtapa4(): Promise<void> {
   }
 }
 
+async function asegurarTablaDevoluciones(): Promise<void> {
+  try {
+    const existe = await pool.query(
+      "SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name='returns') AS e"
+    );
+    if (existe.rows[0].e) {
+      console.log('Tabla devoluciones (returns) ya existe, no se recrea');
+      return;
+    }
+    console.log('Creando tabla devoluciones (returns) (sin tocar datos existentes)...');
+    const sqlReturns = `
+      CREATE TABLE returns (
+        id SERIAL PRIMARY KEY,
+        order_id INTEGER NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+        article_id INTEGER NOT NULL REFERENCES articles(id),
+        quantity INTEGER NOT NULL CHECK (quantity > 0),
+        state VARCHAR(30) NOT NULL CHECK (state IN ('caducado','defectuoso','confundido','no_rota','otro')),
+        action VARCHAR(30) NOT NULL CHECK (action IN ('abonar','cambio_mismo','cambio_otra','solo_retirar')),
+        notes TEXT,
+        created_by INTEGER REFERENCES users(id),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+      CREATE INDEX idx_returns_order_id ON returns(order_id);
+    `;
+    try {
+      await pool.query(sqlReturns);
+      console.log('Tabla devoluciones (returns) creada correctamente');
+    } catch (e) {
+      console.error('Aviso creando tabla devoluciones:', (e as Error).message);
+    }
+  } catch (error) {
+    console.error('Error asegurando tabla devoluciones:', (error as Error).message);
+  }
+}
+
 async function startServer() {
   const bdOk = await esperarBaseDatos();
   if (!bdOk) {
@@ -816,6 +997,7 @@ async function startServer() {
     await crearUsuariosIniciales();
     await crearDatosEjemplo();
     await asegurarTablasEtapa4();
+    await asegurarTablaDevoluciones();
   }
   app.listen(PORT, '0.0.0.0', () => {
     console.log('');
