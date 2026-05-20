@@ -174,6 +174,7 @@
     <div class="nav">
       <button id="nav-catalogos" class="activo" onclick="navA('catalogos')">📋 Catálogos</button>
       <button id="nav-articulos" onclick="navA('articulos')">📦 Artículos</button>
+      <button id="nav-pedidos" onclick="navA('pedidos')">🛒 Pedidos</button>
     </div>
     <div class="contenido">
 
@@ -219,6 +220,21 @@
           <button class="btn" onclick="abrirModalCrearArt()">+ Nuevo artículo</button>
         </div>
         <div id="lista-articulos-todos" class="lista-articulos"><div class="cargando">Cargando artículos...</div></div>
+      </div>
+
+      <div id="pantalla-pedidos" style="display:none;">
+        <div class="cab">
+          <div><h2>Pedidos</h2><div class="sub">Pedidos realizados en LOMHIFAR</div></div>
+        </div>
+        <div id="lista-pedidos" class="lista-articulos"><div class="cargando">Cargando pedidos...</div></div>
+      </div>
+
+      <div id="pantalla-detalle-pedido" style="display:none;">
+        <button class="volver" onclick="navA('pedidos')">← Volver a pedidos</button>
+        <div class="cab">
+          <div><h2 id="dp-titulo">Pedido</h2><div class="sub" id="dp-sub"></div></div>
+        </div>
+        <div id="dp-contenido" class="lista-articulos"><div class="cargando">Cargando...</div></div>
       </div>
 
     </div>
@@ -394,11 +410,14 @@
     document.getElementById("pantalla-detalle").style.display = "none";
     document.getElementById("pantalla-articulos").style.display = "none";
     document.getElementById("pantalla-pedido").style.display = "none";
+    document.getElementById("pantalla-pedidos").style.display = "none";
+    document.getElementById("pantalla-detalle-pedido").style.display = "none";
   }
   function navA(destino) {
     ocultarPantallas();
     document.getElementById("nav-catalogos").classList.remove("activo");
     document.getElementById("nav-articulos").classList.remove("activo");
+    document.getElementById("nav-pedidos").classList.remove("activo");
     if (destino === 'catalogos') {
       document.getElementById("pantalla-catalogos").style.display = "block";
       document.getElementById("nav-catalogos").classList.add("activo");
@@ -407,6 +426,10 @@
       document.getElementById("pantalla-articulos").style.display = "block";
       document.getElementById("nav-articulos").classList.add("activo");
       cargarArticulos();
+    } else if (destino === 'pedidos') {
+      document.getElementById("pantalla-pedidos").style.display = "block";
+      document.getElementById("nav-pedidos").classList.add("activo");
+      cargarPedidos();
     }
   }
 
@@ -984,6 +1007,94 @@
   function volverDelPedido() {
     PEDIDO_ACTUAL = null; PEDIDO_CLIENTE = ""; CESTA_CUENTA = 0;
     verCatalogo(CAT_ACTUAL);
+  }
+
+  function fechaBonita(f) {
+    if (!f) return "-";
+    try {
+      var d = new Date(f);
+      if (isNaN(d.getTime())) return String(f).substring(0,10);
+      var dia = ("0" + d.getDate()).slice(-2);
+      var mes = ("0" + (d.getMonth()+1)).slice(-2);
+      var hh = ("0" + d.getHours()).slice(-2);
+      var mm = ("0" + d.getMinutes()).slice(-2);
+      return dia + "/" + mes + "/" + d.getFullYear() + " " + hh + ":" + mm;
+    } catch (e) { return String(f).substring(0,10); }
+  }
+  function etiquetaEstado(estado) {
+    if (estado === "confirmed" || estado === "confirmado")
+      return '<span class="tag pub">Confirmado</span>';
+    if (estado === "sent" || estado === "enviado")
+      return '<span class="tag pub">Enviado</span>';
+    return '<span class="tag bor">Borrador</span>';
+  }
+
+  async function cargarPedidos() {
+    var cont = document.getElementById("lista-pedidos");
+    cont.innerHTML = '<div class="cargando">Cargando pedidos...</div>';
+    try {
+      var r = await fetch(API + "/api/orders", { headers: { "Authorization": "Bearer " + TOKEN } });
+      if (r.status === 401) { cerrarSesion(); return; }
+      var d = await r.json();
+      var pedidos = d.orders || [];
+      if (pedidos.length > 0) {
+        var html = "";
+        pedidos.forEach(function(p) {
+          var nart = (p.item_count != null) ? p.item_count
+                    : (p.items ? p.items.length : "?");
+          html += '<div class="articulo-fila" style="cursor:pointer;" onclick="verPedido(' + p.id + ')">' +
+            '<div class="izq"><div>' +
+            '<div>' + escapar(p.client_name || "Sin cliente") + '</div>' +
+            '<div class="ref">Pedido nº ' + p.id + ' · ' + fechaBonita(p.created_at) + ' · ' + nart + ' artículo(s)</div>' +
+            '</div></div>' +
+            '<div>' + etiquetaEstado(p.status) + '</div></div>';
+        });
+        cont.innerHTML = html;
+      } else {
+        cont.innerHTML = '<div class="vacio">No hay pedidos todavía.<br>Entra en un catálogo y pulsa "🛒 Hacer pedido" para crear el primero.</div>';
+      }
+    } catch (ex) {
+      cont.innerHTML = '<div class="vacio">Error al cargar: ' + ex.message + '</div>';
+    }
+  }
+
+  async function verPedido(id) {
+    ocultarPantallas();
+    document.getElementById("pantalla-detalle-pedido").style.display = "block";
+    document.getElementById("dp-titulo").textContent = "Pedido nº " + id;
+    document.getElementById("dp-sub").textContent = "";
+    var cont = document.getElementById("dp-contenido");
+    cont.innerHTML = '<div class="cargando">Cargando...</div>';
+    try {
+      var r = await fetch(API + "/api/orders/" + id, { headers: { "Authorization": "Bearer " + TOKEN } });
+      var d = await r.json();
+      if (d.success && d.order) {
+        var o = d.order;
+        document.getElementById("dp-titulo").textContent = "Pedido para " + (o.client_name || "Sin cliente");
+        document.getElementById("dp-sub").textContent =
+          "Pedido nº " + o.id + " · " + fechaBonita(o.created_at) + " · " +
+          (o.status === "confirmed" || o.status === "confirmado" ? "Confirmado" :
+           o.status === "sent" || o.status === "enviado" ? "Enviado" : "Borrador") +
+          (o.notes ? " · Notas: " + o.notes : "");
+        var items = o.items || [];
+        if (items.length > 0) {
+          var html = "";
+          items.forEach(function(it) {
+            html += '<div class="articulo-fila"><div class="izq"><div>' +
+              '<div>' + escapar(it.name || "Artículo") + '</div>' +
+              '<div class="ref">' + escapar(it.reference || "") + '</div></div></div>' +
+              '<div class="precio">x ' + it.quantity + '</div></div>';
+          });
+          cont.innerHTML = html;
+        } else {
+          cont.innerHTML = '<div class="vacio">Este pedido no tiene artículos.</div>';
+        }
+      } else {
+        cont.innerHTML = '<div class="vacio">' + (d.error || "Error al cargar el pedido") + '</div>';
+      }
+    } catch (ex) {
+      cont.innerHTML = '<div class="vacio">Error: ' + ex.message + '</div>';
+    }
   }
 
   function escapar(t) {
