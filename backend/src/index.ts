@@ -357,7 +357,9 @@ app.delete('/api/catalogs/:id', verifyToken, async (req: AuthRequest, res: Respo
 
 // ============================================================================
 // RUTAS DE ELIMINAR LAMINAS (doble confirmacion, protegidas)
-// ============================================================================app.get('/api/catalogs/:id/sheets/:num', verifyToken, async (req: AuthRequest, res: Response) => {
+// ============================================================================
+
+app.get('/api/catalogs/:id/sheets/:num', verifyToken, async (req: AuthRequest, res: Response) => {
   try {
     const info = await sheetDeleteService.getSheetInfo(Number(req.params.id), Number(req.params.num));
     if (!info) { res.status(404).json({ success: false, error: 'Sheet not found' }); return; }
@@ -925,7 +927,9 @@ app.put('/api/users/:id/sage-code', verifyToken, async (req: AuthRequest, res: R
 
 // ============================================================================
 // RUTA SUBIR IMAGEN DE ARTICULO (protegida)
-// ============================================================================app.post('/api/upload/image', verifyToken, (req: AuthRequest, res: Response) => {
+// ============================================================================
+
+app.post('/api/upload/image', verifyToken, (req: AuthRequest, res: Response) => {
   subidaImagen.single('imagen')(req, res, (err: any) => {
     if (err) {
       res.status(400).json({ success: false, error: err.message || 'Error subiendo imagen' });
