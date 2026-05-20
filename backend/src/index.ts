@@ -43,7 +43,6 @@ const shareService = new ShareService(pool);
 const orderService = new OrderService(pool);
 
 app.use(helmet({ contentSecurityPolicy: false }));
-// CORS: permite peticiones desde cualquier origen.
 app.use(cors({
   origin: true,
   credentials: true,
@@ -62,16 +61,12 @@ app.use((req: Request, res: Response, next: NextFunction) => {
   next();
 });
 
-// Servir el frontend (carpeta public). __dirname en produccion es dist/,
-// asi que el frontend se copia a dist/public en el build.
 const FRONTEND_DIR = path.join(__dirname, 'public');
 app.use(express.static(FRONTEND_DIR));
 
 // ============================================================================
-// IMAGENES: carpeta de subidas en VOLUMEN PERSISTENTE (no se borra al redesplegar)
+// IMAGENES: carpeta de subidas en VOLUMEN PERSISTENTE
 // ============================================================================
-// En Railway se monta un volumen en /app/data. Si existe la variable
-// UPLOADS_DIR se usa esa; si no, /app/data/uploads; en local, ./uploads.
 const UPLOADS_DIR = process.env.UPLOADS_DIR
   || (fs.existsSync('/app/data') ? '/app/data/uploads' : path.join(process.cwd(), 'uploads'));
 
@@ -86,10 +81,8 @@ try {
   console.error('Aviso creando carpeta de imagenes:', (e as Error).message);
 }
 
-// Servir las imagenes subidas en /uploads/<archivo>
 app.use('/uploads', express.static(UPLOADS_DIR));
 
-// Configuracion de multer: guarda en UPLOADS_DIR con nombre unico, solo imagenes, max 5MB
 const almacenamiento = multer.diskStorage({
   destination: (req, file, cb) => cb(null, UPLOADS_DIR),
   filename: (req, file, cb) => {
@@ -126,7 +119,6 @@ app.get('/', (req: Request, res: Response) => {
   }
 });
 
-// Mantener el estado del backend disponible en /api
 app.get('/api', (req: Request, res: Response) => {
   res.json({ name: 'CatalogPRO Backend', status: 'OK', version: '1.0.0' });
 });
@@ -220,7 +212,6 @@ app.get('/api/auth/me', verifyToken, async (req: AuthRequest, res: Response) => 
 // RUTAS DE ARTICULOS (protegidas: requieren login)
 // ============================================================================
 
-// Listar articulos (con filtros opcionales por query string)
 app.get('/api/articles', verifyToken, async (req: AuthRequest, res: Response) => {
   try {
     const { query, category, state, limit, offset } = req.query;
@@ -237,7 +228,6 @@ app.get('/api/articles', verifyToken, async (req: AuthRequest, res: Response) =>
   }
 });
 
-// Ver un articulo concreto
 app.get('/api/articles/:id', verifyToken, async (req: AuthRequest, res: Response) => {
   try {
     const articulo = await articleService.getArticleById(Number(req.params.id));
@@ -248,7 +238,6 @@ app.get('/api/articles/:id', verifyToken, async (req: AuthRequest, res: Response
   }
 });
 
-// Crear articulo
 app.post('/api/articles', verifyToken, async (req: AuthRequest, res: Response) => {
   try {
     if (!req.user) { res.status(401).json({ success: false, error: 'Unauthorized' }); return; }
@@ -259,7 +248,6 @@ app.post('/api/articles', verifyToken, async (req: AuthRequest, res: Response) =
   }
 });
 
-// Actualizar articulo
 app.put('/api/articles/:id', verifyToken, async (req: AuthRequest, res: Response) => {
   try {
     if (!req.user) { res.status(401).json({ success: false, error: 'Unauthorized' }); return; }
@@ -270,7 +258,6 @@ app.put('/api/articles/:id', verifyToken, async (req: AuthRequest, res: Response
   }
 });
 
-// Categorias y tags (utiles para filtros)
 app.get('/api/categories', verifyToken, async (req: AuthRequest, res: Response) => {
   try {
     const categorias = await articleService.getCategories();
@@ -284,7 +271,6 @@ app.get('/api/categories', verifyToken, async (req: AuthRequest, res: Response) 
 // RUTAS DE CATALOGOS (protegidas: requieren login)
 // ============================================================================
 
-// Listar todos los catalogos
 app.get('/api/catalogs', verifyToken, async (req: AuthRequest, res: Response) => {
   try {
     const { limit, offset } = req.query;
@@ -298,7 +284,6 @@ app.get('/api/catalogs', verifyToken, async (req: AuthRequest, res: Response) =>
   }
 });
 
-// Ver un catalogo concreto (con sus articulos)
 app.get('/api/catalogs/:id', verifyToken, async (req: AuthRequest, res: Response) => {
   try {
     const catalogo = await catalogService.getCatalogById(Number(req.params.id));
@@ -310,7 +295,6 @@ app.get('/api/catalogs/:id', verifyToken, async (req: AuthRequest, res: Response
   }
 });
 
-// Crear catalogo
 app.post('/api/catalogs', verifyToken, async (req: AuthRequest, res: Response) => {
   try {
     if (!req.user) { res.status(401).json({ success: false, error: 'Unauthorized' }); return; }
@@ -321,7 +305,6 @@ app.post('/api/catalogs', verifyToken, async (req: AuthRequest, res: Response) =
   }
 });
 
-// Actualizar catalogo
 app.put('/api/catalogs/:id', verifyToken, async (req: AuthRequest, res: Response) => {
   try {
     if (!req.user) { res.status(401).json({ success: false, error: 'Unauthorized' }); return; }
@@ -332,7 +315,6 @@ app.put('/api/catalogs/:id', verifyToken, async (req: AuthRequest, res: Response
   }
 });
 
-// Publicar catalogo
 app.post('/api/catalogs/:id/publish', verifyToken, async (req: AuthRequest, res: Response) => {
   try {
     if (!req.user) { res.status(401).json({ success: false, error: 'Unauthorized' }); return; }
@@ -369,15 +351,9 @@ app.delete('/api/catalogs/:id', verifyToken, async (req: AuthRequest, res: Respo
 });
 
 // ============================================================================
-// MANEJO DE ERRORES
-// ============================================================================
-
-
-// ============================================================================
 // RUTAS DE ELIMINAR LAMINAS (doble confirmacion, protegidas)
 // ============================================================================
 
-// Ver informacion de una lamina antes de eliminar
 app.get('/api/catalogs/:id/sheets/:num', verifyToken, async (req: AuthRequest, res: Response) => {
   try {
     const info = await sheetDeleteService.getSheetInfo(Number(req.params.id), Number(req.params.num));
@@ -388,7 +364,6 @@ app.get('/api/catalogs/:id/sheets/:num', verifyToken, async (req: AuthRequest, r
   }
 });
 
-// PASO 1: solicitar eliminacion de una lamina (devuelve codigo de confirmacion)
 app.post('/api/catalogs/:id/sheets/:num/delete-request', verifyToken, async (req: AuthRequest, res: Response) => {
   try {
     if (!req.user) { res.status(401).json({ success: false, error: 'Unauthorized' }); return; }
@@ -401,7 +376,6 @@ app.post('/api/catalogs/:id/sheets/:num/delete-request', verifyToken, async (req
   }
 });
 
-// PASO 2: confirmar eliminacion (requiere el codigo del paso 1)
 app.post('/api/catalogs/delete-confirm', verifyToken, async (req: AuthRequest, res: Response) => {
   try {
     if (!req.user) { res.status(401).json({ success: false, error: 'Unauthorized' }); return; }
@@ -414,7 +388,6 @@ app.post('/api/catalogs/delete-confirm', verifyToken, async (req: AuthRequest, r
   }
 });
 
-// Cancelar una solicitud de eliminacion
 app.post('/api/catalogs/delete-cancel', verifyToken, async (req: AuthRequest, res: Response) => {
   try {
     if (!req.user) { res.status(401).json({ success: false, error: 'Unauthorized' }); return; }
@@ -426,7 +399,6 @@ app.post('/api/catalogs/delete-cancel', verifyToken, async (req: AuthRequest, re
   }
 });
 
-// Ver solicitudes de eliminacion pendientes del usuario
 app.get('/api/catalogs/delete-requests/pending', verifyToken, async (req: AuthRequest, res: Response) => {
   try {
     if (!req.user) { res.status(401).json({ success: false, error: 'Unauthorized' }); return; }
@@ -442,7 +414,6 @@ app.get('/api/catalogs/delete-requests/pending', verifyToken, async (req: AuthRe
 // RUTAS DE COMPARTIR CATALOGO POR EMAIL (protegidas)
 // ============================================================================
 
-// Compartir catalogo (o laminas concretas) por email
 app.post('/api/catalogs/:id/share/email', verifyToken, async (req: AuthRequest, res: Response) => {
   try {
     if (!req.user) { res.status(401).json({ success: false, error: 'Unauthorized' }); return; }
@@ -460,7 +431,6 @@ app.post('/api/catalogs/:id/share/email', verifyToken, async (req: AuthRequest, 
   }
 });
 
-// Historial de comparticiones de un catalogo
 app.get('/api/catalogs/:id/share/history', verifyToken, async (req: AuthRequest, res: Response) => {
   try {
     const historial = await shareService.getShareHistory(Number(req.params.id));
@@ -475,7 +445,6 @@ app.get('/api/catalogs/:id/share/history', verifyToken, async (req: AuthRequest,
 // RUTAS DE PEDIDOS (protegidas)
 // ============================================================================
 
-// Listar pedidos: admin ve todos, comercial solo los suyos
 app.get('/api/orders', verifyToken, async (req: AuthRequest, res: Response) => {
   try {
     if (!req.user) { res.status(401).json({ success: false, error: 'Unauthorized' }); return; }
@@ -495,7 +464,6 @@ app.get('/api/orders', verifyToken, async (req: AuthRequest, res: Response) => {
   }
 });
 
-// Resumen de pedidos (para panel)
 app.get('/api/orders/summary', verifyToken, async (req: AuthRequest, res: Response) => {
   try {
     if (!req.user) { res.status(401).json({ success: false, error: 'Unauthorized' }); return; }
@@ -507,7 +475,6 @@ app.get('/api/orders/summary', verifyToken, async (req: AuthRequest, res: Respon
   }
 });
 
-// Ver un pedido con sus articulos
 app.get('/api/orders/:id', verifyToken, async (req: AuthRequest, res: Response) => {
   try {
     const pedido = await orderService.getOrderById(Number(req.params.id));
@@ -518,7 +485,6 @@ app.get('/api/orders/:id', verifyToken, async (req: AuthRequest, res: Response) 
   }
 });
 
-// Crear un pedido (cesta vacia en borrador)
 app.post('/api/orders', verifyToken, async (req: AuthRequest, res: Response) => {
   try {
     if (!req.user) { res.status(401).json({ success: false, error: 'Unauthorized' }); return; }
@@ -530,7 +496,6 @@ app.post('/api/orders', verifyToken, async (req: AuthRequest, res: Response) => 
   }
 });
 
-// Anadir un articulo al pedido (con cantidad)
 app.post('/api/orders/:id/items', verifyToken, async (req: AuthRequest, res: Response) => {
   try {
     const { article_id, quantity, composition_json, notes } = req.body;
@@ -546,7 +511,6 @@ app.post('/api/orders/:id/items', verifyToken, async (req: AuthRequest, res: Res
   }
 });
 
-// Cambiar la cantidad de un articulo del pedido
 app.put('/api/orders/:id/items/:itemId', verifyToken, async (req: AuthRequest, res: Response) => {
   try {
     const { quantity } = req.body;
@@ -559,7 +523,6 @@ app.put('/api/orders/:id/items/:itemId', verifyToken, async (req: AuthRequest, r
   }
 });
 
-// Quitar un articulo del pedido
 app.delete('/api/orders/:id/items/:itemId', verifyToken, async (req: AuthRequest, res: Response) => {
   try {
     await orderService.removeOrderItem(Number(req.params.id), Number(req.params.itemId));
@@ -569,7 +532,6 @@ app.delete('/api/orders/:id/items/:itemId', verifyToken, async (req: AuthRequest
   }
 });
 
-// Confirmar el pedido (pasa de borrador a confirmado)
 app.post('/api/orders/:id/confirm', verifyToken, async (req: AuthRequest, res: Response) => {
   try {
     if (!req.user) { res.status(401).json({ success: false, error: 'Unauthorized' }); return; }
@@ -580,7 +542,6 @@ app.post('/api/orders/:id/confirm', verifyToken, async (req: AuthRequest, res: R
   }
 });
 
-// Marcar pedido como enviado
 app.post('/api/orders/:id/sent', verifyToken, async (req: AuthRequest, res: Response) => {
   try {
     if (!req.user) { res.status(401).json({ success: false, error: 'Unauthorized' }); return; }
@@ -595,7 +556,6 @@ app.post('/api/orders/:id/sent', verifyToken, async (req: AuthRequest, res: Resp
 // RUTAS DEVOLUCIONES (returns) - parte de la Nota de visita
 // ============================================================================
 
-// Listar devoluciones de un pedido/visita
 app.get('/api/orders/:id/returns', verifyToken, async (req: AuthRequest, res: Response) => {
   try {
     if (!req.user) { res.status(401).json({ success: false, error: 'Unauthorized' }); return; }
@@ -616,7 +576,6 @@ app.get('/api/orders/:id/returns', verifyToken, async (req: AuthRequest, res: Re
   }
 });
 
-// Añadir una devolución a un pedido/visita
 app.post('/api/orders/:id/returns', verifyToken, async (req: AuthRequest, res: Response) => {
   try {
     if (!req.user) { res.status(401).json({ success: false, error: 'Unauthorized' }); return; }
@@ -641,13 +600,11 @@ app.post('/api/orders/:id/returns', verifyToken, async (req: AuthRequest, res: R
       res.status(400).json({ success: false, error: 'La cantidad debe ser mayor que 0' });
       return;
     }
-    // Comprobar que el pedido existe
     const chkOrder = await pool.query('SELECT id FROM orders WHERE id = $1', [orderId]);
     if (chkOrder.rows.length === 0) {
       res.status(404).json({ success: false, error: 'Pedido no encontrado' });
       return;
     }
-    // Comprobar que el articulo existe
     const chkArt = await pool.query('SELECT id, name, reference FROM articles WHERE id = $1', [Number(article_id)]);
     if (chkArt.rows.length === 0) {
       res.status(404).json({ success: false, error: 'Article not found' });
@@ -673,7 +630,6 @@ app.put('/api/orders/:id/returns/:returnId', verifyToken, async (req: AuthReques
     const orderId = Number(req.params.id);
     const returnId = Number(req.params.returnId);
     const { quantity, state, action, notes } = req.body || {};
-    // Comprobar que la devolucion existe en ese pedido
     const chk = await pool.query('SELECT id FROM returns WHERE id = $1 AND order_id = $2', [returnId, orderId]);
     if (chk.rows.length === 0) {
       res.status(404).json({ success: false, error: 'Devolucion no encontrada' });
@@ -738,7 +694,186 @@ app.delete('/api/orders/:id/returns/:returnId', verifyToken, async (req: AuthReq
 });
 
 // ============================================================================
-// RUTA SUBIR IMAGEN DE ARTICULO (protegida)
+// RUTAS DE CLIENTES (clients)
+// ============================================================================
+// Importar la libreria xlsx (Excel) para procesar archivos de Sage
+import * as XLSX from 'xlsx';
+
+// Multer configurado para aceptar archivos Excel (memoria, no disco)
+const subidaExcel = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: function(req, file, cb) {
+    const ok = file.mimetype.includes('spreadsheet') ||
+               file.mimetype.includes('excel') ||
+               file.originalname.toLowerCase().endsWith('.xlsx') ||
+               file.originalname.toLowerCase().endsWith('.xls');
+    if (ok) cb(null, true);
+    else cb(new Error('Solo se aceptan archivos Excel (.xlsx, .xls)'));
+  }
+});
+
+// Listar clientes (con filtro por comercial)
+app.get('/api/clients', verifyToken, async (req: AuthRequest, res: Response) => {
+  try {
+    if (!req.user) { res.status(401).json({ success: false, error: 'Unauthorized' }); return; }
+    const soloActivos = req.query.active !== 'false';
+    let sql = "SELECT id, sage_code, commercial_code, razon_social, cif, telefono, whatsapp, email, municipio, provincia, cp, direccion, codigo_contable, categoria, is_active, is_new_from_visit, created_at FROM clients";
+    const conds: string[] = [];
+    const params: any[] = [];
+    if (soloActivos) {
+      conds.push('is_active = TRUE');
+    }
+    if (req.user.role !== 'admin') {
+      const usr = await pool.query('SELECT sage_commercial_code FROM users WHERE id = $1', [req.user.id]);
+      const codigo = usr.rows.length > 0 ? usr.rows[0].sage_commercial_code : null;
+      if (codigo) {
+        params.push(codigo);
+        conds.push(`commercial_code = $${params.length}`);
+      }
+    }
+    if (conds.length > 0) {
+      sql += ' WHERE ' + conds.join(' AND ');
+    }
+    sql += ' ORDER BY razon_social ASC';
+    const r = await pool.query(sql, params);
+    res.json({ success: true, clients: r.rows });
+  } catch (error) {
+    res.status(500).json({ success: false, error: (error as Error).message });
+  }
+});
+
+// Crear cliente NUEVO (alta desde una visita en farmacia que aun no esta en Sage)
+app.post('/api/clients', verifyToken, async (req: AuthRequest, res: Response) => {
+  try {
+    if (!req.user) { res.status(401).json({ success: false, error: 'Unauthorized' }); return; }
+    const { razon_social, cif, telefono, whatsapp, email, municipio, provincia, cp, direccion, numero_cuenta } = req.body || {};
+    if (!razon_social || !String(razon_social).trim()) {
+      res.status(400).json({ success: false, error: 'La razon social es obligatoria' });
+      return;
+    }
+    const existe = await pool.query('SELECT id FROM clients WHERE LOWER(razon_social) = LOWER($1) LIMIT 1', [String(razon_social).trim()]);
+    if (existe.rows.length > 0) {
+      res.status(400).json({ success: false, error: 'Ya existe un cliente con esa razon social. Usa el desplegable para elegirlo.' });
+      return;
+    }
+    const ins = await pool.query(
+      `INSERT INTO clients (razon_social, cif, telefono, whatsapp, email, municipio, provincia, cp, direccion, numero_cuenta, is_active, is_new_from_visit, created_by)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, TRUE, TRUE, $11)
+       RETURNING id, razon_social, cif, telefono, whatsapp, email, municipio, provincia, cp, direccion, is_new_from_visit, created_at`,
+      [String(razon_social).trim(),
+       cif ? String(cif).trim() : null,
+       telefono ? String(telefono).trim() : null,
+       whatsapp ? String(whatsapp).trim() : null,
+       email ? String(email).trim() : null,
+       municipio ? String(municipio).trim() : null,
+       provincia ? String(provincia).trim() : null,
+       cp ? String(cp).trim() : null,
+       direccion ? String(direccion).trim() : null,
+       numero_cuenta ? String(numero_cuenta).trim() : null,
+       req.user.id]
+    );
+    res.json({ success: true, client: ins.rows[0] });
+  } catch (error) {
+    res.status(400).json({ success: false, error: (error as Error).message });
+  }
+});
+
+// Importar clientes desde Excel de Sage (solo admin)
+app.post('/api/clients/import', verifyToken, (req: AuthRequest, res: Response) => {
+  subidaExcel.single('excel')(req, res, async (err: any) => {
+    try {
+      if (err) {
+        res.status(400).json({ success: false, error: err.message || 'Error subiendo Excel' });
+        return;
+      }
+      if (!req.user) { res.status(401).json({ success: false, error: 'Unauthorized' }); return; }
+      if (req.user.role !== 'admin') {
+        res.status(403).json({ success: false, error: 'Solo el admin puede importar clientes' });
+        return;
+      }
+      if (!req.file) {
+        res.status(400).json({ success: false, error: 'No se recibio ningun archivo Excel' });
+        return;
+      }
+      const wb = XLSX.read(req.file.buffer, { type: 'buffer' });
+      const sheetName = wb.SheetNames[0];
+      const sheet = wb.Sheets[sheetName];
+      const filas: any[] = XLSX.utils.sheet_to_json(sheet, { defval: null });
+      if (filas.length === 0) {
+        res.status(400).json({ success: false, error: 'El Excel esta vacio' });
+        return;
+      }
+      let insertados = 0, actualizados = 0, ignorados = 0, errores = 0;
+      const errorDetalles: string[] = [];
+      for (let i = 0; i < filas.length; i++) {
+        const f = filas[i];
+        const razonSocial = String(f['Razón social'] || f['Razon social'] || f['razon_social'] || '').trim();
+        if (!razonSocial) { errores++; errorDetalles.push(`Fila ${i+2}: sin razon social`); continue; }
+        if (razonSocial.toUpperCase().startsWith('BAJA-') || razonSocial.toUpperCase().startsWith('BAJA ')) {
+          ignorados++;
+          continue;
+        }
+        const sageCode = f['Cód. cliente'] != null ? String(f['Cód. cliente']).trim() : null;
+        const cif = f['CIF/DNI'] != null ? String(f['CIF/DNI']).trim() : null;
+        const delegacion = f['Deleg.'] != null ? String(f['Deleg.']).trim() : null;
+        const telefono = f['Teléfono'] != null ? String(f['Teléfono']).trim() : null;
+        const municipio = f['Municipio'] != null ? String(f['Municipio']).trim() : null;
+        const provincia = f['Provincia'] != null ? String(f['Provincia']).trim() : null;
+        const commercialCode = f['Comercial asig.'] != null ? String(f['Comercial asig.']).trim() : null;
+        const codigoContable = f['Cód. contable'] != null ? String(f['Cód. contable']).trim() : null;
+        const categoria = f['Categoría'] != null ? String(f['Categoría']).trim() : null;
+        const email = f['Correo Electrónico1'] != null ? String(f['Correo Electrónico1']).trim() : null;
+        try {
+          if (sageCode) {
+            const existe = await pool.query('SELECT id FROM clients WHERE sage_code = $1', [sageCode]);
+            if (existe.rows.length > 0) {
+              await pool.query(
+                `UPDATE clients SET razon_social=$1, cif=$2, delegacion=$3, telefono=$4, municipio=$5, provincia=$6,
+                   commercial_code=$7, codigo_contable=$8, categoria=$9, email=$10, is_active=TRUE,
+                   updated_at=CURRENT_TIMESTAMP
+                 WHERE sage_code=$11`,
+                [razonSocial, cif, delegacion, telefono, municipio, provincia, commercialCode, codigoContable, categoria, email, sageCode]
+              );
+              actualizados++;
+            } else {
+              await pool.query(
+                `INSERT INTO clients (sage_code, razon_social, cif, delegacion, telefono, municipio, provincia,
+                   commercial_code, codigo_contable, categoria, email, is_active, is_new_from_visit, created_by)
+                 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,TRUE,FALSE,$12)`,
+                [sageCode, razonSocial, cif, delegacion, telefono, municipio, provincia, commercialCode, codigoContable, categoria, email, req.user!.id]
+              );
+              insertados++;
+            }
+          } else {
+            await pool.query(
+              `INSERT INTO clients (razon_social, cif, delegacion, telefono, municipio, provincia,
+                 commercial_code, codigo_contable, categoria, email, is_active, is_new_from_visit, created_by)
+               VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,TRUE,FALSE,$11)`,
+              [razonSocial, cif, delegacion, telefono, municipio, provincia, commercialCode, codigoContable, categoria, email, req.user!.id]
+            );
+            insertados++;
+          }
+        } catch (eIns) {
+          errores++;
+          errorDetalles.push(`Fila ${i+2} (${razonSocial}): ${(eIns as Error).message}`);
+        }
+      }
+      res.json({
+        success: true,
+        resumen: {
+          total_filas: filas.length,
+          insertados, actualizados, ignorados_baja: ignorados, errores
+        },
+        errores_detalle: errorDetalles.slice(0, 10)
+      });
+    } catch (error) {
+      res.status(400).json({ success: false, error: (error as Error).message });
+    }
+  });
+});
+
+// ============================================================================// RUTA SUBIR IMAGEN DE ARTICULO (protegida)
 // ============================================================================
 app.post('/api/upload/image', verifyToken, (req: AuthRequest, res: Response) => {
   subidaImagen.single('imagen')(req, res, (err: any) => {
@@ -750,19 +885,16 @@ app.post('/api/upload/image', verifyToken, (req: AuthRequest, res: Response) => 
       res.status(400).json({ success: false, error: 'No se recibio ninguna imagen' });
       return;
     }
-    // Ruta publica que se guardara en articles.image_path
     const rutaPublica = '/uploads/' + req.file.filename;
     res.json({ success: true, image_path: rutaPublica });
   });
 });
 
 app.use((req: Request, res: Response) => {
-  // Rutas /api que no existen -> 404 JSON
   if (req.path.startsWith('/api')) {
     res.status(404).json({ error: 'Route not found', path: req.path, method: req.method });
     return;
   }
-  // Cualquier otra ruta -> servir el frontend (app de una sola pagina)
   const indexPath = path.join(FRONTEND_DIR, 'index.html');
   if (fs.existsSync(indexPath)) {
     res.sendFile(indexPath);
@@ -854,11 +986,6 @@ async function crearUsuariosIniciales(): Promise<void> {
   }
 }
 
-/**
- * Crea articulos y un catalogo de ejemplo si no existen.
- * Reemplaza al seed.sql original (que tenia un error en la seccion
- * de catalogos: insertaba 7 valores en 6 columnas).
- */
 async function crearDatosEjemplo(): Promise<void> {
   try {
     const cuenta = await pool.query('SELECT COUNT(*)::int AS n FROM articles');
@@ -885,7 +1012,6 @@ async function crearDatosEjemplo(): Promise<void> {
     }
     console.log(`${articulos.length} articulos de ejemplo creados`);
 
-    // Crear un catalogo de ejemplo (corrige el error del seed.sql original)
     const admin = await pool.query("SELECT id FROM users WHERE email = 'admin@lomhifar.com'");
     const adminId = admin.rows.length > 0 ? admin.rows[0].id : null;
     if (adminId) {
@@ -895,7 +1021,6 @@ async function crearDatosEjemplo(): Promise<void> {
         ['Catalogo Maestro Q2 2026', adminId, 'Catalogo maestro con articulos de ejemplo']
       );
       const catId = cat.rows[0].id;
-      // Anadir todos los articulos al catalogo
       const arts = await pool.query('SELECT id FROM articles ORDER BY display_order');
       let orden = 1;
       for (const row of arts.rows) {
@@ -916,13 +1041,6 @@ async function crearDatosEjemplo(): Promise<void> {
 // ============================================================================
 
 
-/**
- * Asegura que las tablas de la migracion 002 (compartir/eliminar) existen.
- * Se ejecuta SIEMPRE al arrancar. Si ya existen, no hace nada.
- * Esto cubre el caso de bases de datos creadas ANTES de la Etapa 4
- * (donde la estructura ya existia y la migracion 002 no se re-ejecutaba).
- * NO toca usuarios, articulos ni catalogos: solo anade lo que falte.
- */
 async function asegurarTablasEtapa4(): Promise<void> {
   try {
     const existe = await pool.query(
@@ -987,6 +1105,76 @@ async function asegurarTablaDevoluciones(): Promise<void> {
   }
 }
 
+async function asegurarTablaClients(): Promise<void> {
+  try {
+    const existe = await pool.query(
+      "SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name='clients') AS e"
+    );
+    if (existe.rows[0].e) {
+      console.log('Tabla clients ya existe, no se recrea');
+      return;
+    }
+    console.log('Creando tabla clients (sin tocar datos existentes)...');
+    const sqlClients = `
+      CREATE TABLE clients (
+        id SERIAL PRIMARY KEY,
+        sage_code VARCHAR(30) UNIQUE,
+        commercial_code VARCHAR(30),
+        razon_social VARCHAR(200) NOT NULL,
+        cif VARCHAR(30),
+        delegacion VARCHAR(50),
+        telefono VARCHAR(50),
+        whatsapp VARCHAR(50),
+        email VARCHAR(150),
+        municipio VARCHAR(100),
+        provincia VARCHAR(100),
+        cp VARCHAR(10),
+        direccion VARCHAR(250),
+        codigo_contable VARCHAR(30),
+        categoria VARCHAR(30),
+        numero_cuenta VARCHAR(34),
+        is_active BOOLEAN DEFAULT TRUE,
+        is_new_from_visit BOOLEAN DEFAULT FALSE,
+        created_by INTEGER REFERENCES users(id),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+      CREATE INDEX idx_clients_commercial_code ON clients(commercial_code);
+      CREATE INDEX idx_clients_razon_social ON clients(razon_social);
+      CREATE INDEX idx_clients_sage_code ON clients(sage_code);
+    `;
+    try {
+      await pool.query(sqlClients);
+      console.log('Tabla clients creada correctamente');
+    } catch (e) {
+      console.error('Aviso creando tabla clients:', (e as Error).message);
+    }
+  } catch (error) {
+    console.error('Error asegurando tabla clients:', (error as Error).message);
+  }
+}
+
+async function asegurarColumnaSageCode(): Promise<void> {
+  try {
+    const existe = await pool.query(
+      "SELECT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='users' AND column_name='sage_commercial_code') AS e"
+    );
+    if (existe.rows[0].e) {
+      console.log('Columna users.sage_commercial_code ya existe, no se recrea');
+      return;
+    }
+    console.log('Añadiendo columna sage_commercial_code a users...');
+    try {
+      await pool.query("ALTER TABLE users ADD COLUMN sage_commercial_code VARCHAR(30)");
+      console.log('Columna users.sage_commercial_code creada correctamente');
+    } catch (e) {
+      console.error('Aviso creando columna sage_commercial_code:', (e as Error).message);
+    }
+  } catch (error) {
+    console.error('Error asegurando columna sage_commercial_code:', (error as Error).message);
+  }
+}
+
 async function startServer() {
   const bdOk = await esperarBaseDatos();
   if (!bdOk) {
@@ -998,6 +1186,8 @@ async function startServer() {
     await crearDatosEjemplo();
     await asegurarTablasEtapa4();
     await asegurarTablaDevoluciones();
+    await asegurarTablaClients();
+    await asegurarColumnaSageCode();
   }
   app.listen(PORT, '0.0.0.0', () => {
     console.log('');
