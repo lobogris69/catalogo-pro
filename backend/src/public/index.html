@@ -1324,7 +1324,8 @@
   }
 
   function elegirProductoDev(artId) {
-    var prod = PROD_MAESTRO_TODOS.find(function(a){ return a.id === artId; });
+   var idNum = Number(artId);
+    var prod = PROD_MAESTRO_TODOS.find(function(a){ return Number(a.id) === idNum; });
     if (!prod) return;
     DEV_PROD_ELEGIDO = prod;
     document.getElementById("dev-sel-nombre").textContent = prod.name + " (ref " + (prod.reference || "-") + ")";
