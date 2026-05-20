@@ -142,6 +142,47 @@
     display: inline-block; background: var(--azul); color: #fff;
     border-radius: 20px; padding: 3px 11px; font-size: 13px; font-weight: 700; margin-left: 6px;
   }
+  .pestanas-int {
+    display: flex; gap: 4px; margin-bottom: 18px;
+    border-bottom: 2px solid var(--borde);
+  }
+  .pestanas-int button {
+    background: none; border: none; color: var(--gris); cursor: pointer;
+    padding: 12px 22px; font-size: 14px; font-weight: 600;
+    border-bottom: 3px solid transparent; margin-bottom: -2px;
+  }
+  .pestanas-int button.activa { color: var(--azul); border-bottom-color: var(--azul); }
+  .pestanas-int button:hover { color: var(--texto); }
+  .pestanas-int button .num {
+    display: inline-block; background: var(--borde); color: var(--texto);
+    border-radius: 20px; padding: 1px 9px; font-size: 12px; margin-left: 6px; font-weight: 700;
+  }
+  .pestanas-int button.activa .num { background: var(--azul); color: #fff; }
+  .dev-anadida {
+    background: var(--panel); border: 1px solid var(--borde); border-radius: 10px;
+    padding: 14px 16px; margin-bottom: 10px;
+  }
+  .dev-anadida .arr {
+    display: flex; justify-content: space-between; align-items: flex-start; gap: 12px;
+  }
+  .dev-anadida .info-d { flex: 1; }
+  .dev-anadida .info-d .nm { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+  .dev-anadida .info-d .meta { font-size: 12px; color: var(--gris); }
+  .dev-anadida .btn-borrar-dev {
+    background: var(--rojo); color: #fff; border: none; border-radius: 6px;
+    padding: 5px 10px; font-size: 12px; cursor: pointer;
+  }
+  .dev-anadida .badge-est, .dev-anadida .badge-acc {
+    display: inline-block; padding: 2px 9px; border-radius: 16px;
+    font-size: 11px; font-weight: 600; margin-right: 4px;
+  }
+  .badge-est { background: #3a2e10; color: #e0c060; }
+  .badge-acc { background: #10242a; color: #5cc7d8; }
+  .buscador-maestro {
+    width: 100%; padding: 10px 14px; margin-bottom: 12px;
+    background: var(--fondo); border: 1px solid var(--borde);
+    border-radius: 8px; color: var(--texto); font-size: 14px;
+  }
 </style>
 </head>
 <body>
@@ -191,7 +232,7 @@
         <div class="cab">
           <div><h2 id="det-nombre">Catálogo</h2><div class="sub" id="det-desc"></div></div>
           <div style="display:flex; gap:10px; flex-wrap:wrap;">
-            <button class="btn" onclick="iniciarPedido()" style="background:var(--verde);">🛒 Hacer pedido</button>
+            <button class="btn" onclick="iniciarPedido()" style="background:var(--verde);">📋 Nueva visita</button>
             <button class="btn btn-sec" onclick="abrirModalEliminar()">🗑️ Eliminar lámina</button>
             <button class="btn btn-sec" onclick="abrirModalEmail()">✉️ Enviar por email</button>
             <button class="btn" onclick="abrirModalAnadirArts()">+ Añadir artículos</button>
@@ -203,15 +244,33 @@
       <div id="pantalla-pedido" style="display:none;">
         <button class="volver" onclick="volverDelPedido()">← Volver al catálogo</button>
         <div class="cab">
-          <div><h2 id="ped-titulo">Pedido</h2><div class="sub" id="ped-sub"></div></div>
+          <div><h2 id="ped-titulo">Nota de visita</h2><div class="sub" id="ped-sub"></div></div>
           <button class="btn" onclick="verCesta()" style="background:var(--verde);">
             🛒 Ver cesta <span class="badge-cesta" id="badge-cesta">0</span>
           </button>
         </div>
         <div class="barra-pedido">
-          <div class="info-ped">Cliente: <b id="ped-cliente">-</b> · Elige productos y cantidades, luego pulsa "Ver cesta"</div>
+          <div class="info-ped">Cliente: <b id="ped-cliente">-</b> · Añade productos a la pestaña Pedido y/o registra Devoluciones</div>
         </div>
-        <div id="ped-articulos" class="lista-articulos"><div class="cargando">Cargando artículos...</div></div>
+
+        <div class="pestanas-int">
+          <button id="tab-pedido" class="activa" onclick="cambiarTab('pedido')">📦 Pedido <span class="num" id="num-pedido">0</span></button>
+          <button id="tab-devoluciones" onclick="cambiarTab('devoluciones')">🔄 Devoluciones <span class="num" id="num-devoluciones">0</span></button>
+        </div>
+
+        <div id="contenido-pedido">
+          <div id="ped-articulos" class="lista-articulos"><div class="cargando">Cargando artículos...</div></div>
+        </div>
+
+        <div id="contenido-devoluciones" style="display:none;">
+          <div id="lista-devs-anadidas" style="margin-bottom: 18px;">
+            <div style="font-size:13px; color:var(--gris); margin-bottom:8px;">Devoluciones añadidas a esta visita:</div>
+            <div id="cont-devs-anadidas"><div class="vacio" style="padding:20px;">Aún no hay devoluciones. Añade alguna abajo.</div></div>
+          </div>
+          <button class="btn" onclick="abrirModalAnadirDev()" style="width:100%; padding:14px;">
+            + Añadir devolución
+          </button>
+        </div>
       </div>
 
       <div id="pantalla-articulos" style="display:none;">
@@ -323,16 +382,16 @@
 
   <div class="modal-fondo" id="modal-cliente">
     <div class="modal">
-      <h3>🛒 Nuevo pedido</h3>
-      <div class="modal-sub">¿Para qué cliente es este pedido?</div>
+      <h3>📋 Nueva visita</h3>
+      <div class="modal-sub">¿Para qué cliente es esta visita?</div>
       <label>Nombre del cliente *</label>
       <input id="ped-nombre-cliente" type="text" placeholder="Ej: Farmacia Central Donostia">
-      <label>Notas del pedido (opcional)</label>
-      <textarea id="ped-notas" rows="2" placeholder="Observaciones del pedido"></textarea>
+      <label>Notas de la visita (opcional)</label>
+      <textarea id="ped-notas" rows="2" placeholder="Observaciones de la visita"></textarea>
       <div class="msg" id="cliente-msg"></div>
       <div class="modal-botones">
         <button class="btn btn-sec" onclick="cerrarModal('modal-cliente')">Cancelar</button>
-        <button class="btn" id="btn-iniciar-pedido" onclick="confirmarIniciarPedido()">Empezar pedido</button>
+        <button class="btn" id="btn-iniciar-pedido" onclick="confirmarIniciarPedido()">Empezar visita</button>
       </div>
     </div>
   </div>
@@ -348,6 +407,56 @@
       <div class="modal-botones">
         <button class="btn btn-sec" onclick="cerrarModal('modal-cesta')">Seguir añadiendo</button>
         <button class="btn" id="btn-confirmar-pedido" onclick="confirmarPedido()" style="background:var(--verde);">✅ Confirmar pedido</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-fondo" id="modal-anadir-dev">
+    <div class="modal" style="max-width: 540px;">
+      <h3>🔄 Añadir devolución</h3>
+      <div class="modal-sub">Producto que el cliente devuelve y qué hay que hacer</div>
+
+      <label>Buscar producto del maestro LOMHIFAR *</label>
+      <input id="dev-buscar" class="buscador-maestro" type="text" placeholder="Escribe nombre o referencia..." oninput="filtrarMaestro()">
+      <div id="dev-lista-maestro" style="max-height: 180px; overflow-y: auto; border: 1px solid var(--borde); border-radius: 9px; background: var(--fondo);">
+        <div class="cargando" style="padding:18px;">Cargando productos...</div>
+      </div>
+      <div id="dev-seleccionado" style="margin-top:10px; padding:10px 14px; background:#10242a; border:1px solid var(--azul); border-radius:8px; font-size:13px; display:none;">
+        Producto seleccionado: <b id="dev-sel-nombre"></b>
+      </div>
+
+      <div class="fila2" style="margin-top: 14px;">
+        <div>
+          <label>Cantidad retirada *</label>
+          <input id="dev-cantidad" type="number" min="1" value="1">
+        </div>
+        <div>
+          <label>Estado del producto *</label>
+          <select id="dev-estado">
+            <option value="caducado">Caducado</option>
+            <option value="defectuoso">Defectuoso</option>
+            <option value="confundido">Confundido</option>
+            <option value="no_rota">No rota</option>
+            <option value="otro">Otro</option>
+          </select>
+        </div>
+      </div>
+
+      <label>Acción a realizar *</label>
+      <select id="dev-accion">
+        <option value="abonar">Abonar (Sage hará el abono)</option>
+        <option value="cambio_mismo">Cambio por el mismo producto, sin cargo</option>
+        <option value="cambio_otra">Cambio por otra referencia, sin cargo</option>
+        <option value="solo_retirar">Solo retirar (ya abonado en oficina)</option>
+      </select>
+
+      <label>Notas (opcional)</label>
+      <textarea id="dev-notas" rows="2" placeholder="Ej: Lote X, caducidad 03/2026"></textarea>
+
+      <div class="msg" id="dev-msg"></div>
+      <div class="modal-botones">
+        <button class="btn btn-sec" onclick="cerrarModal('modal-anadir-dev')">Cancelar</button>
+        <button class="btn" id="btn-guardar-dev" onclick="guardarDevolucion()">Añadir devolución</button>
       </div>
     </div>
   </div>
@@ -872,10 +981,16 @@
   async function abrirPantallaPedido() {
     ocultarPantallas();
     document.getElementById("pantalla-pedido").style.display = "block";
-    document.getElementById("ped-titulo").textContent = "Pedido para " + PEDIDO_CLIENTE;
-    document.getElementById("ped-sub").textContent = "Pedido nº " + PEDIDO_ACTUAL;
+    document.getElementById("ped-titulo").textContent = "Visita a " + PEDIDO_CLIENTE;
+    document.getElementById("ped-sub").textContent = "Visita nº " + PEDIDO_ACTUAL;
     document.getElementById("ped-cliente").textContent = PEDIDO_CLIENTE;
     document.getElementById("badge-cesta").textContent = CESTA_CUENTA;
+    document.getElementById("num-pedido").textContent = CESTA_CUENTA;
+    document.getElementById("num-devoluciones").textContent = "0";
+    DEVS_ANADIDAS = [];
+    PROD_MAESTRO_TODOS = [];
+    DEV_PROD_ELEGIDO = null;
+    cambiarTab('pedido');
     var cont = document.getElementById("ped-articulos");
     cont.innerHTML = '<div class="cargando">Cargando artículos...</div>';
     try {
@@ -929,6 +1044,7 @@
       if (d.success) {
         CESTA_CUENTA++;
         document.getElementById("badge-cesta").textContent = CESTA_CUENTA;
+        document.getElementById("num-pedido").textContent = CESTA_CUENTA;
         btn.className = "btn-anadir-art anadido";
         btn.textContent = "✓ Añadido";
         setTimeout(function(){ btn.className = "btn-anadir-art"; btn.textContent = "Añadir"; btn.disabled = false; }, 1100);
@@ -977,8 +1093,8 @@
     var btn = document.getElementById("btn-confirmar-pedido");
     var msg = document.getElementById("cesta-msg");
     msg.className = "msg"; msg.style.display = "none";
-    if (CESTA_CUENTA === 0) {
-      msg.className = "msg error"; msg.textContent = "⚠️ La cesta está vacía, añade artículos antes de confirmar";
+    if (CESTA_CUENTA === 0 && DEVS_ANADIDAS.length === 0) {
+      msg.className = "msg error"; msg.textContent = "⚠️ La visita está vacía. Añade productos al pedido o registra alguna devolución antes de confirmar";
       return;
     }
     btn.disabled = true; btn.textContent = "Confirmando...";
@@ -989,10 +1105,10 @@
       var d = await r.json();
       if (d.success) {
         msg.className = "msg ok";
-        msg.textContent = "✅ Pedido confirmado correctamente para " + PEDIDO_CLIENTE;
+        msg.textContent = "✅ Visita confirmada correctamente para " + PEDIDO_CLIENTE;
         setTimeout(function(){
           cerrarModal('modal-cesta');
-          PEDIDO_ACTUAL = null; PEDIDO_CLIENTE = ""; CESTA_CUENTA = 0;
+          PEDIDO_ACTUAL = null; PEDIDO_CLIENTE = ""; CESTA_CUENTA = 0; DEVS_ANADIDAS = [];
           navA('catalogos');
         }, 1800);
       } else {
@@ -1005,11 +1121,9 @@
   }
 
   function volverDelPedido() {
-    PEDIDO_ACTUAL = null; PEDIDO_CLIENTE = ""; CESTA_CUENTA = 0;
+    PEDIDO_ACTUAL = null; PEDIDO_CLIENTE = ""; CESTA_CUENTA = 0; DEVS_ANADIDAS = [];
     verCatalogo(CAT_ACTUAL);
-  }
-
-  function fechaBonita(f) {
+  }function fechaBonita(f) {
     if (!f) return "-";
     try {
       var d = new Date(f);
@@ -1094,6 +1208,178 @@
       }
     } catch (ex) {
       cont.innerHTML = '<div class="vacio">Error: ' + ex.message + '</div>';
+    }
+  }
+
+  var DEVS_ANADIDAS = [];
+  var PROD_MAESTRO_TODOS = [];
+  var DEV_PROD_ELEGIDO = null;
+
+  function cambiarTab(cual) {
+    document.getElementById("tab-pedido").classList.remove("activa");
+    document.getElementById("tab-devoluciones").classList.remove("activa");
+    document.getElementById("contenido-pedido").style.display = "none";
+    document.getElementById("contenido-devoluciones").style.display = "none";
+    if (cual === "pedido") {
+      document.getElementById("tab-pedido").classList.add("activa");
+      document.getElementById("contenido-pedido").style.display = "block";
+    } else {
+      document.getElementById("tab-devoluciones").classList.add("activa");
+      document.getElementById("contenido-devoluciones").style.display = "block";
+      cargarDevolucionesDeVisita();
+    }
+  }
+
+  async function cargarDevolucionesDeVisita() {
+    if (!PEDIDO_ACTUAL) return;
+    var cont = document.getElementById("cont-devs-anadidas");
+    try {
+      var r = await fetch(API + "/api/orders/" + PEDIDO_ACTUAL + "/returns", { headers: { "Authorization": "Bearer " + TOKEN } });
+      var d = await r.json();
+      if (d.success) {
+        DEVS_ANADIDAS = d.returns || [];
+        pintarDevolucionesAnadidas();
+        document.getElementById("num-devoluciones").textContent = DEVS_ANADIDAS.length;
+      }
+    } catch (ex) {
+      cont.innerHTML = '<div class="vacio" style="padding:20px;">Error: ' + ex.message + '</div>';
+    }
+  }
+
+  function pintarDevolucionesAnadidas() {
+    var cont = document.getElementById("cont-devs-anadidas");
+    if (DEVS_ANADIDAS.length === 0) {
+      cont.innerHTML = '<div class="vacio" style="padding:20px;">Aún no hay devoluciones. Añade alguna abajo.</div>';
+      return;
+    }
+    var nombresEstado = { caducado:"Caducado", defectuoso:"Defectuoso", confundido:"Confundido", no_rota:"No rota", otro:"Otro" };
+    var nombresAccion = { abonar:"Abonar", cambio_mismo:"Cambio mismo prod.", cambio_otra:"Cambio otra ref.", solo_retirar:"Solo retirar" };
+    var html = "";
+    DEVS_ANADIDAS.forEach(function(d) {
+      html += '<div class="dev-anadida"><div class="arr">' +
+        '<div class="info-d">' +
+        '<div class="nm">' + escapar(d.name || "Producto") + ' <span style="color:var(--gris);font-weight:400;">(ref ' + escapar(d.reference || "-") + ')</span></div>' +
+        '<div class="meta">Cantidad: <b>x ' + d.quantity + '</b></div>' +
+        '<div style="margin-top:6px;">' +
+        '<span class="badge-est">' + escapar(nombresEstado[d.state] || d.state) + '</span>' +
+        '<span class="badge-acc">' + escapar(nombresAccion[d.action] || d.action) + '</span>' +
+        '</div>' +
+        (d.notes ? '<div class="meta" style="margin-top:6px;">Notas: ' + escapar(d.notes) + '</div>' : '') +
+        '</div>' +
+        '<button class="btn-borrar-dev" onclick="borrarDevolucion(' + d.id + ')">Quitar</button>' +
+        '</div></div>';
+    });
+    cont.innerHTML = html;
+  }
+
+  async function abrirModalAnadirDev() {
+    document.getElementById("dev-buscar").value = "";
+    document.getElementById("dev-cantidad").value = "1";
+    document.getElementById("dev-estado").value = "caducado";
+    document.getElementById("dev-accion").value = "abonar";
+    document.getElementById("dev-notas").value = "";
+    document.getElementById("dev-seleccionado").style.display = "none";
+    DEV_PROD_ELEGIDO = null;
+    var msg = document.getElementById("dev-msg"); msg.className = "msg"; msg.style.display = "none";
+    document.getElementById("modal-anadir-dev").classList.add("abierto");
+    if (PROD_MAESTRO_TODOS.length === 0) {
+      try {
+        var r = await fetch(API + "/api/articles", { headers: { "Authorization": "Bearer " + TOKEN } });
+        var d = await r.json();
+        PROD_MAESTRO_TODOS = d.articles || [];
+      } catch (ex) {
+        document.getElementById("dev-lista-maestro").innerHTML = '<div class="vacio" style="padding:18px;">Error cargando maestro: ' + ex.message + '</div>';
+        return;
+      }
+    }
+    pintarMaestroFiltrado(PROD_MAESTRO_TODOS);
+  }
+
+  function filtrarMaestro() {
+    var q = (document.getElementById("dev-buscar").value || "").toLowerCase().trim();
+    if (!q) { pintarMaestroFiltrado(PROD_MAESTRO_TODOS); return; }
+    var filtrados = PROD_MAESTRO_TODOS.filter(function(a){
+      return (a.name && a.name.toLowerCase().indexOf(q) !== -1) ||
+             (a.reference && a.reference.toLowerCase().indexOf(q) !== -1);
+    });
+    pintarMaestroFiltrado(filtrados);
+  }
+
+  function pintarMaestroFiltrado(lista) {
+    var cont = document.getElementById("dev-lista-maestro");
+    if (lista.length === 0) {
+      cont.innerHTML = '<div class="vacio" style="padding:18px;">No se encontraron productos.</div>';
+      return;
+    }
+    var html = "";
+    lista.slice(0, 50).forEach(function(a) {
+      html += '<div class="art-check" style="cursor:pointer;" onclick="elegirProductoDev(' + a.id + ')">' +
+        '<div class="info"><div class="nm">' + escapar(a.name) + '</div>' +
+        '<div class="rf">ref ' + escapar(a.reference || "-") + '</div></div></div>';
+    });
+    if (lista.length > 50) {
+      html += '<div class="rf" style="padding:8px 14px; color:var(--gris); text-align:center;">+' + (lista.length - 50) + ' más (afina la búsqueda)</div>';
+    }
+    cont.innerHTML = html;
+  }
+
+  function elegirProductoDev(artId) {
+    var prod = PROD_MAESTRO_TODOS.find(function(a){ return a.id === artId; });
+    if (!prod) return;
+    DEV_PROD_ELEGIDO = prod;
+    document.getElementById("dev-sel-nombre").textContent = prod.name + " (ref " + (prod.reference || "-") + ")";
+    document.getElementById("dev-seleccionado").style.display = "block";
+  }
+
+  async function guardarDevolucion() {
+    var btn = document.getElementById("btn-guardar-dev");
+    var msg = document.getElementById("dev-msg"); msg.className = "msg"; msg.style.display = "none";
+    if (!DEV_PROD_ELEGIDO) { msg.className = "msg error"; msg.textContent = "⚠️ Elige un producto del maestro"; return; }
+    var cant = Number(document.getElementById("dev-cantidad").value);
+    if (!cant || cant < 1) { msg.className = "msg error"; msg.textContent = "⚠️ La cantidad debe ser mayor que 0"; return; }
+    var estado = document.getElementById("dev-estado").value;
+    var accion = document.getElementById("dev-accion").value;
+    var notas = (document.getElementById("dev-notas").value || "").trim();
+    btn.disabled = true; btn.textContent = "Guardando...";
+    try {
+      var r = await fetch(API + "/api/orders/" + PEDIDO_ACTUAL + "/returns", {
+        method: "POST", headers: { "Authorization": "Bearer " + TOKEN, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          article_id: DEV_PROD_ELEGIDO.id,
+          quantity: cant,
+          state: estado,
+          action: accion,
+          notes: notas
+        })
+      });
+      var d = await r.json();
+      if (d.success) {
+        cerrarModal('modal-anadir-dev');
+        await cargarDevolucionesDeVisita();
+      } else {
+        msg.className = "msg error"; msg.textContent = "⚠️ " + (d.error || "No se pudo añadir");
+      }
+    } catch (ex) {
+      msg.className = "msg error"; msg.textContent = "❌ Error: " + ex.message;
+    }
+    btn.disabled = false; btn.textContent = "Añadir devolución";
+  }
+
+  async function borrarDevolucion(returnId) {
+    if (!confirm("¿Quitar esta devolución de la visita?")) return;
+    try {
+      var r = await fetch(API + "/api/orders/" + PEDIDO_ACTUAL + "/returns/" + returnId, {
+        method: "DELETE",
+        headers: { "Authorization": "Bearer " + TOKEN }
+      });
+      var d = await r.json();
+      if (d.success) {
+        await cargarDevolucionesDeVisita();
+      } else {
+        alert("No se pudo quitar: " + (d.error || "error"));
+      }
+    } catch (ex) {
+      alert("Error: " + ex.message);
     }
   }
 
