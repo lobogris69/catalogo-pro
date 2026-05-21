@@ -370,6 +370,12 @@
           ℹ️ Cada cliente importado de Sage tiene un <b>código de comercial asignado</b> (la columna "Comercial asig." del Excel: 0, 1, 2, 6...). Aquí asignas a cada usuario comercial el código que le corresponde. Así, cuando ese comercial entre en CatalogPRO, solo verá <b>sus farmacias</b>. Si dejas el campo vacío, el comercial verá <b>todos los clientes</b>.
         </div>
         <div id="lista-usuarios-admin" class="lista-articulos"><div class="cargando">Cargando usuarios...</div></div>
+
+        <div style="background:#3a1620; border:1px solid #a52f44; color:#f08098; padding:14px 18px; margin-top:24px; border-radius:10px; font-size:13px; line-height:1.6;">
+          <div style="margin-bottom:10px;"><b style="color:#f08098;">🗑️ Limpieza de pedidos en borrador</b></div>
+          <div style="margin-bottom:12px;">Borra de forma <b>permanente</b> todos los pedidos en estado "Borrador" junto con sus artículos y devoluciones. <b>No afecta a pedidos confirmados ni enviados</b>. Útil para limpiar pedidos de prueba.</div>
+          <button class="btn" onclick="borrarPedidosBorrador()" style="background:var(--rojo);">🗑️ Borrar todos los pedidos en borrador</button>
+        </div>
       </div>
 
       <div id="pantalla-pedidos" style="display:none;">
@@ -1893,7 +1899,27 @@
       alert("Error: " + ex.message);
     }
   }
-
+async function borrarPedidosBorrador() {
+    var ok1 = confirm("⚠️ ATENCIÓN: vas a BORRAR de forma PERMANENTE todos los pedidos en estado Borrador.\n\nNo afecta a pedidos Confirmados ni Enviados.\n\n¿Continuar?");
+    if (!ok1) return;
+    var ok2 = confirm("Última confirmación: esto NO se puede deshacer. ¿Borrar definitivamente todos los borradores?");
+    if (!ok2) return;
+    try {
+      var r = await fetch(API + "/api/orders/drafts", {
+        method: "DELETE",
+        headers: { "Authorization": "Bearer " + TOKEN, "Content-Type": "application/json" },
+        body: JSON.stringify({ confirm: true })
+      });
+      var d = await r.json();
+      if (d.success) {
+        alert("✅ " + (d.message || ("Borrados " + d.deleted + " pedido(s)")));
+      } else {
+        alert("⚠️ No se pudo borrar: " + (d.error || "error"));
+      }
+    } catch (ex) {
+      alert("❌ Error: " + ex.message);
+    }
+  }
   function escapar(t) {
     var d = document.createElement("div");
     d.textContent = t == null ? "" : String(t);
