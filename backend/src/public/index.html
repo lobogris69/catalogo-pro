@@ -472,17 +472,89 @@
   </div>
 
   <div class="modal-fondo" id="modal-cliente">
-    <div class="modal">
+    <div class="modal" style="max-width: 560px;">
       <h3>📋 Nueva visita</h3>
-      <div class="modal-sub">¿Para qué cliente es esta visita?</div>
-      <label>Nombre del cliente *</label>
-      <input id="ped-nombre-cliente" type="text" placeholder="Ej: Farmacia Central Donostia">
-      <label>Notas de la visita (opcional)</label>
+      <div class="modal-sub">Elige el cliente para esta visita. Si no está, créalo nuevo.</div>
+
+      <label>Buscar cliente *</label>
+      <input id="visita-buscar-cli" type="text" placeholder="Buscar por nombre, CIF o municipio..." oninput="filtrarClientesVisita()">
+      <div id="visita-lista-cli" style="max-height: 200px; overflow-y: auto; border: 1px solid var(--borde); border-radius: 9px; background: var(--fondo); margin-top: 6px;">
+        <div class="cargando" style="padding:18px;">Cargando clientes...</div>
+      </div>
+
+      <div id="visita-cliente-elegido" style="margin-top:10px; padding:10px 14px; background:#10242a; border:1px solid var(--azul); border-radius:8px; font-size:13px; display:none;">
+        Cliente elegido: <b id="visita-cli-nombre"></b>
+        <div id="visita-cli-meta" style="color:var(--gris); font-size:12px; margin-top:4px;"></div>
+      </div>
+
+      <div style="text-align: center; margin: 14px 0; color: var(--gris); font-size: 13px;">— o si la farmacia no está en la lista —</div>
+      <button class="btn btn-sec" onclick="abrirModalClienteNuevo()" style="width:100%;">+ Crear cliente nuevo</button>
+
+      <label style="margin-top: 18px;">Notas de la visita (opcional)</label>
       <textarea id="ped-notas" rows="2" placeholder="Observaciones de la visita"></textarea>
+
       <div class="msg" id="cliente-msg"></div>
       <div class="modal-botones">
         <button class="btn btn-sec" onclick="cerrarModal('modal-cliente')">Cancelar</button>
         <button class="btn" id="btn-iniciar-pedido" onclick="confirmarIniciarPedido()">Empezar visita</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-fondo" id="modal-cliente-nuevo">
+    <div class="modal" style="max-width: 600px;">
+      <h3>👥 Crear cliente nuevo</h3>
+      <div class="modal-sub">Rellena los datos del cliente. Quedará marcado como "Nuevo" para que la oficina lo dé de alta también en Sage.</div>
+
+      <label>Razón social / Nombre de la farmacia *</label>
+      <input id="cn-razon" type="text" placeholder="Ej: Farmacia Pérez García">
+
+      <div class="fila2">
+        <div>
+          <label>CIF / DNI</label>
+          <input id="cn-cif" type="text" placeholder="Ej: B12345678">
+        </div>
+        <div>
+          <label>Código postal</label>
+          <input id="cn-cp" type="text" placeholder="Ej: 20018">
+        </div>
+      </div>
+
+      <label>Dirección</label>
+      <input id="cn-direccion" type="text" placeholder="Calle, número, piso">
+
+      <div class="fila2">
+        <div>
+          <label>Municipio</label>
+          <input id="cn-municipio" type="text" placeholder="Ej: Donostia">
+        </div>
+        <div>
+          <label>Provincia</label>
+          <input id="cn-provincia" type="text" placeholder="Ej: Gipuzkoa">
+        </div>
+      </div>
+
+      <div class="fila2">
+        <div>
+          <label>Teléfono</label>
+          <input id="cn-telefono" type="text" placeholder="943 123 456">
+        </div>
+        <div>
+          <label>WhatsApp</label>
+          <input id="cn-whatsapp" type="text" placeholder="666 123 456">
+        </div>
+      </div>
+
+      <label>Email</label>
+      <input id="cn-email" type="email" placeholder="farmacia@ejemplo.com">
+
+      <label>Número de cuenta IBAN</label>
+      <input id="cn-cuenta" type="text" placeholder="ES12 1234 1234 12 1234567890" maxlength="34">
+
+      <div class="msg" id="cn-msg"></div>
+      <div class="modal-botones">
+        <button class="btn btn-sec" onclick="cerrarModal('modal-cliente-nuevo')">Cancelar</button>
+        <button class="btn" id="btn-cn-crear" onclick="crearClienteNuevoEnVisita()">Crear y elegir</button>
       </div>
     </div>
   </div>
@@ -569,7 +641,8 @@
         <button class="btn" id="btn-importar-cli" onclick="importarClientes()">Importar</button>
       </div>
     </div>
-  </div><div class="modal-fondo" id="modal-eliminar">
+  </div>
+  <div class="modal-fondo" id="modal-eliminar">
     <div class="modal">
       <h3>🗑️ Eliminar lámina</h3>
       <div class="modal-sub">Esta acción borra de forma permanente todos los artículos de una lámina del catálogo</div>
@@ -949,7 +1022,8 @@
       msg.className = "msg error";
       msg.textContent = "⚠️ No se añadió ninguno (puede que ya estuvieran en el catálogo)";
     }
-  }function abrirModalEmail() {
+  }
+ function abrirModalEmail() {
     document.getElementById("em-dest").value = "";
     document.getElementById("em-nombre").value = "";
     document.getElementById("em-msg").value = "";
@@ -1069,40 +1143,163 @@
   var PEDIDO_CLIENTE = "";
   var CESTA_CUENTA = 0;
 
+  var VISITA_CLIENTE_ELEGIDO = null;
+  var CLIENTES_PARA_VISITA = [];
+
   function iniciarPedido() {
-    document.getElementById("ped-nombre-cliente").value = "";
+    document.getElementById("visita-buscar-cli").value = "";
     document.getElementById("ped-notas").value = "";
+    document.getElementById("visita-cliente-elegido").style.display = "none";
+    VISITA_CLIENTE_ELEGIDO = null;
     var m = document.getElementById("cliente-msg"); m.className = "msg"; m.style.display = "none";
     document.getElementById("modal-cliente").classList.add("abierto");
+    cargarClientesParaVisita();
+  }
+
+  async function cargarClientesParaVisita() {
+    var cont = document.getElementById("visita-lista-cli");
+    cont.innerHTML = '<div class="cargando" style="padding:18px;">Cargando clientes...</div>';
+    try {
+      var r = await fetch(API + "/api/clients", { headers: { "Authorization": "Bearer " + TOKEN } });
+      var d = await r.json();
+      CLIENTES_PARA_VISITA = d.clients || [];
+      pintarListaClientesVisita(CLIENTES_PARA_VISITA);
+    } catch (ex) {
+      cont.innerHTML = '<div class="vacio" style="padding:18px;">Error: ' + ex.message + '</div>';
+    }
+  }
+
+  function pintarListaClientesVisita(lista) {
+    var cont = document.getElementById("visita-lista-cli");
+    if (!lista || lista.length === 0) {
+      cont.innerHTML = '<div class="vacio" style="padding:18px;">No hay clientes que mostrar.<br>Pulsa "+ Crear cliente nuevo" abajo.</div>';
+      return;
+    }
+    var html = "";
+    lista.slice(0, 50).forEach(function(c) {
+      var ubi = c.municipio || c.provincia || "";
+      var nuevo = c.is_new_from_visit ? ' <span style="color:#5ed98a;font-size:11px;">🆕</span>' : '';
+      html += '<div class="art-check" style="cursor:pointer;" onclick="elegirClienteVisita(' + c.id + ')">' +
+        '<div class="info">' +
+        '<div class="nm">' + escapar(c.razon_social) + nuevo + '</div>' +
+        '<div class="rf">' + escapar(ubi) + (c.cif ? ' · CIF ' + escapar(c.cif) : '') + '</div>' +
+        '</div></div>';
+    });
+    if (lista.length > 50) {
+      html += '<div class="rf" style="padding:8px 14px; color:var(--gris); text-align:center;">+' + (lista.length - 50) + ' más (afina la búsqueda)</div>';
+    }
+    cont.innerHTML = html;
+  }
+
+  function filtrarClientesVisita() {
+    var q = (document.getElementById("visita-buscar-cli").value || "").toLowerCase().trim();
+    if (!q) { pintarListaClientesVisita(CLIENTES_PARA_VISITA); return; }
+    var filtrados = CLIENTES_PARA_VISITA.filter(function(c) {
+      var campos = [c.razon_social, c.cif, c.municipio, c.provincia, c.sage_code];
+      return campos.some(function(v) { return v && String(v).toLowerCase().indexOf(q) !== -1; });
+    });
+    pintarListaClientesVisita(filtrados);
+  }
+
+  function elegirClienteVisita(clienteId) {
+    var idNum = Number(clienteId);
+    var cli = CLIENTES_PARA_VISITA.find(function(c){ return Number(c.id) === idNum; });
+    if (!cli) return;
+    VISITA_CLIENTE_ELEGIDO = cli;
+    document.getElementById("visita-cli-nombre").textContent = cli.razon_social;
+    var meta = [];
+    if (cli.cif) meta.push("CIF " + cli.cif);
+    if (cli.municipio) meta.push(cli.municipio);
+    if (cli.provincia) meta.push(cli.provincia);
+    if (cli.sage_code) meta.push("Sage #" + cli.sage_code);
+    document.getElementById("visita-cli-meta").textContent = meta.join(" · ");
+    document.getElementById("visita-cliente-elegido").style.display = "block";
   }
 
   async function confirmarIniciarPedido() {
     var btn = document.getElementById("btn-iniciar-pedido");
     var msg = document.getElementById("cliente-msg");
-    var cliente = document.getElementById("ped-nombre-cliente").value.trim();
     var notas = document.getElementById("ped-notas").value.trim();
     msg.className = "msg"; msg.style.display = "none";
-    if (!cliente) { msg.className = "msg error"; msg.textContent = "⚠️ El nombre del cliente es obligatorio"; return; }
-    btn.disabled = true; btn.textContent = "Creando pedido...";
+    if (!VISITA_CLIENTE_ELEGIDO) {
+      msg.className = "msg error";
+      msg.textContent = "⚠️ Elige un cliente de la lista o crea uno nuevo antes de empezar la visita";
+      return;
+    }
+    btn.disabled = true; btn.textContent = "Creando visita...";
     try {
       var r = await fetch(API + "/api/orders", {
         method: "POST", headers: { "Authorization": "Bearer " + TOKEN, "Content-Type": "application/json" },
-        body: JSON.stringify({ catalog_id: CAT_ACTUAL, client_name: cliente, notes: notas })
+        body: JSON.stringify({ catalog_id: CAT_ACTUAL, client_id: VISITA_CLIENTE_ELEGIDO.id, notes: notas })
       });
       var d = await r.json();
       if (d.success && d.order) {
         PEDIDO_ACTUAL = d.order.id;
-        PEDIDO_CLIENTE = cliente;
+        PEDIDO_CLIENTE = VISITA_CLIENTE_ELEGIDO.razon_social;
         CESTA_CUENTA = 0;
         cerrarModal('modal-cliente');
         abrirPantallaPedido();
       } else {
-        msg.className = "msg error"; msg.textContent = "⚠️ " + (d.error || "No se pudo crear el pedido");
+        msg.className = "msg error"; msg.textContent = "⚠️ " + (d.error || "No se pudo crear la visita");
       }
     } catch (ex) {
       msg.className = "msg error"; msg.textContent = "❌ Error: " + ex.message;
     }
-    btn.disabled = false; btn.textContent = "Empezar pedido";
+    btn.disabled = false; btn.textContent = "Empezar visita";
+  }
+
+  function abrirModalClienteNuevo() {
+    ["cn-razon","cn-cif","cn-cp","cn-direccion","cn-municipio","cn-provincia","cn-telefono","cn-whatsapp","cn-email","cn-cuenta"].forEach(function(i){
+      document.getElementById(i).value = "";
+    });
+    var m = document.getElementById("cn-msg"); m.className = "msg"; m.style.display = "none";
+    document.getElementById("modal-cliente-nuevo").classList.add("abierto");
+  }
+
+  async function crearClienteNuevoEnVisita() {
+    var btn = document.getElementById("btn-cn-crear");
+    var msg = document.getElementById("cn-msg"); msg.className = "msg"; msg.style.display = "none";
+    var razon = document.getElementById("cn-razon").value.trim();
+    if (!razon) { msg.className = "msg error"; msg.textContent = "⚠️ La razón social / nombre de la farmacia es obligatorio"; return; }
+    btn.disabled = true; btn.textContent = "Creando cliente...";
+    try {
+      var cuerpo = {
+        razon_social: razon,
+        cif: document.getElementById("cn-cif").value.trim(),
+        cp: document.getElementById("cn-cp").value.trim(),
+        direccion: document.getElementById("cn-direccion").value.trim(),
+        municipio: document.getElementById("cn-municipio").value.trim(),
+        provincia: document.getElementById("cn-provincia").value.trim(),
+        telefono: document.getElementById("cn-telefono").value.trim(),
+        whatsapp: document.getElementById("cn-whatsapp").value.trim(),
+        email: document.getElementById("cn-email").value.trim(),
+        numero_cuenta: document.getElementById("cn-cuenta").value.trim()
+      };
+      var r = await fetch(API + "/api/clients", {
+        method: "POST", headers: { "Authorization": "Bearer " + TOKEN, "Content-Type": "application/json" },
+        body: JSON.stringify(cuerpo)
+      });
+      var d = await r.json();
+      if (d.success && d.client) {
+        CLIENTES_PARA_VISITA.unshift(d.client);
+        VISITA_CLIENTE_ELEGIDO = d.client;
+        document.getElementById("visita-cli-nombre").textContent = d.client.razon_social + " 🆕";
+        var meta = [];
+        if (d.client.cif) meta.push("CIF " + d.client.cif);
+        if (d.client.municipio) meta.push(d.client.municipio);
+        if (d.client.provincia) meta.push(d.client.provincia);
+        meta.push("Nuevo (pendiente de Sage)");
+        document.getElementById("visita-cli-meta").textContent = meta.join(" · ");
+        document.getElementById("visita-cliente-elegido").style.display = "block";
+        cerrarModal('modal-cliente-nuevo');
+        pintarListaClientesVisita(CLIENTES_PARA_VISITA);
+      } else {
+        msg.className = "msg error"; msg.textContent = "⚠️ " + (d.error || "No se pudo crear");
+      }
+    } catch (ex) {
+      msg.className = "msg error"; msg.textContent = "❌ Error: " + ex.message;
+    }
+    btn.disabled = false; btn.textContent = "Crear y elegir";
   }
 
   async function abrirPantallaPedido() {
@@ -1250,7 +1447,8 @@
   function volverDelPedido() {
     PEDIDO_ACTUAL = null; PEDIDO_CLIENTE = ""; CESTA_CUENTA = 0; DEVS_ANADIDAS = [];
     verCatalogo(CAT_ACTUAL);
-  }function fechaBonita(f) {
+  }
+ function fechaBonita(f) {
     if (!f) return "-";
     try {
       var d = new Date(f);
@@ -1312,11 +1510,19 @@
       if (d.success && d.order) {
         var o = d.order;
         document.getElementById("dp-titulo").textContent = "Pedido para " + (o.client_name || "Sin cliente");
-        document.getElementById("dp-sub").textContent =
-          "Pedido nº " + o.id + " · " + fechaBonita(o.created_at) + " · " +
-          (o.status === "confirmed" || o.status === "confirmado" ? "Confirmado" :
-           o.status === "sent" || o.status === "enviado" ? "Enviado" : "Borrador") +
-          (o.notes ? " · Notas: " + o.notes : "");
+        var subParts = ["Pedido nº " + o.id, fechaBonita(o.created_at)];
+        subParts.push(o.status === "confirmed" || o.status === "confirmado" ? "Confirmado" :
+                       o.status === "sent" || o.status === "enviado" ? "Enviado" : "Borrador");
+        if (o.client) {
+          var ubi = [];
+          if (o.client.municipio) ubi.push(o.client.municipio);
+          if (o.client.provincia) ubi.push(o.client.provincia);
+          if (o.client.cif) ubi.push("CIF " + o.client.cif);
+          if (o.client.is_new_from_visit) ubi.push("🆕 Nuevo (pendiente de Sage)");
+          if (ubi.length > 0) subParts.push(ubi.join(" · "));
+        }
+        if (o.notes) subParts.push("Notas: " + o.notes);
+        document.getElementById("dp-sub").textContent = subParts.join(" · ");
         var items = o.items || [];
         if (items.length > 0) {
           var html = "";
