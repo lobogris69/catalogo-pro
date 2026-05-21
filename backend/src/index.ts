@@ -961,7 +961,46 @@ app.put('/api/users/:id/sage-code', verifyToken, async (req: AuthRequest, res: R
     res.status(400).json({ success: false, error: (error as Error).message });
   }
 });
-
+// ============================================================================
+// RUTA LIMPIEZA: borrar todos los pedidos en estado borrador (solo admin)
+// ============================================================================
+// Borra todos los pedidos con status='draft', junto con sus items y devoluciones.
+// NO toca pedidos confirmados ni enviados. Requiere flag confirm=true en el body.
+app.delete('/api/orders/drafts', verifyToken, async (req: AuthRequest, res: Response) => {
+  try {
+    if (!req.user) { res.status(401).json({ success: false, error: 'Unauthorized' }); return; }
+    if (req.user.role !== 'admin') {
+      res.status(403).json({ success: false, error: 'Solo el admin puede borrar pedidos en lote' });
+      return;
+    }
+    const { confirm } = req.body || {};
+    if (confirm !== true) {
+      res.status(400).json({ success: false, error: 'Falta confirm=true para evitar borrados accidentales' });
+      return;
+    }
+    const cnt = await pool.query("SELECT COUNT(*)::int AS n FROM orders WHERE status = 'draft'");
+    const numPedidos = cnt.rows[0].n;
+    if (numPedidos === 0) {
+      res.json({ success: true, deleted: 0, message: 'No hay pedidos en borrador para borrar' });
+      return;
+    }
+    await pool.query(
+      "DELETE FROM returns WHERE order_id IN (SELECT id FROM orders WHERE status = 'draft')"
+    );
+    await pool.query(
+      "DELETE FROM order_items WHERE order_id IN (SELECT id FROM orders WHERE status = 'draft')"
+    );
+    const del = await pool.query("DELETE FROM orders WHERE status = 'draft' RETURNING id");
+    res.json({
+      success: true,
+      deleted: del.rows.length,
+      ids: del.rows.map((r: any) => r.id),
+      message: `Borrados ${del.rows.length} pedido(s) en borrador junto con sus articulos y devoluciones`
+    });
+  } catch (error) {
+    res.status(400).json({ success: false, error: (error as Error).message });
+  }
+});
 // ============================================================================
 // RUTA SUBIR IMAGEN DE ARTICULO (protegida)
 // ============================================================================
