@@ -64,9 +64,6 @@ app.use((req: Request, res: Response, next: NextFunction) => {
 const FRONTEND_DIR = path.join(__dirname, 'public');
 app.use(express.static(FRONTEND_DIR));
 
-// ============================================================================
-// IMAGENES: carpeta de subidas en VOLUMEN PERSISTENTE
-// ============================================================================
 const UPLOADS_DIR = process.env.UPLOADS_DIR
   || (fs.existsSync('/app/data') ? '/app/data/uploads' : path.join(process.cwd(), 'uploads'));
 
@@ -351,14 +348,8 @@ app.delete('/api/catalogs/:id', verifyToken, async (req: AuthRequest, res: Respo
 });
 
 // ============================================================================
-// MANEJO DE ERRORES
-// ============================================================================
-
-
-// ============================================================================
 // RUTAS DE ELIMINAR LAMINAS (doble confirmacion, protegidas)
 // ============================================================================
-
 app.get('/api/catalogs/:id/sheets/:num', verifyToken, async (req: AuthRequest, res: Response) => {
   try {
     const info = await sheetDeleteService.getSheetInfo(Number(req.params.id), Number(req.params.num));
@@ -482,8 +473,21 @@ app.get('/api/orders/summary', verifyToken, async (req: AuthRequest, res: Respon
 
 app.get('/api/orders/:id', verifyToken, async (req: AuthRequest, res: Response) => {
   try {
-    const pedido = await orderService.getOrderById(Number(req.params.id));
+    const pedido: any = await orderService.getOrderById(Number(req.params.id));
     if (!pedido) { res.status(404).json({ success: false, error: 'Order not found' }); return; }
+    if (pedido.client_id) {
+      try {
+        const cli = await pool.query(
+          'SELECT id, razon_social, cif, telefono, whatsapp, email, municipio, provincia, cp, direccion, sage_code, is_new_from_visit FROM clients WHERE id = $1',
+          [pedido.client_id]
+        );
+        if (cli.rows.length > 0) {
+          pedido.client = cli.rows[0];
+        }
+      } catch (eCli) {
+        console.error('Error cargando cliente del pedido:', (eCli as Error).message);
+      }
+    }
     res.json({ success: true, order: pedido });
   } catch (error) {
     res.status(500).json({ success: false, error: (error as Error).message });
@@ -493,9 +497,41 @@ app.get('/api/orders/:id', verifyToken, async (req: AuthRequest, res: Response) 
 app.post('/api/orders', verifyToken, async (req: AuthRequest, res: Response) => {
   try {
     if (!req.user) { res.status(401).json({ success: false, error: 'Unauthorized' }); return; }
-    const { catalog_id, client_name, notes } = req.body;
-    const pedido = await orderService.createOrder({ catalog_id, client_name, notes }, req.user.id);
-    res.status(201).json({ success: true, order: pedido });
+    const { catalog_id, client_name, client_id, notes } = req.body;
+    if (!catalog_id) {
+      res.status(400).json({ success: false, error: 'catalog_id es obligatorio' });
+      return;
+    }
+    let nombreCliente: string | null = client_name ? String(client_name).trim() : null;
+    let idCliente: number | null = null;
+    if (client_id != null && client_id !== "") {
+      const idc = Number(client_id);
+      if (!idc || idc < 1) {
+        res.status(400).json({ success: false, error: 'client_id no valido' });
+        return;
+      }
+      const cli = await pool.query(
+        'SELECT id, razon_social FROM clients WHERE id = $1 AND is_active = TRUE',
+        [idc]
+      );
+      if (cli.rows.length === 0) {
+        res.status(404).json({ success: false, error: 'Cliente no encontrado o inactivo' });
+        return;
+      }
+      idCliente = cli.rows[0].id;
+      nombreCliente = cli.rows[0].razon_social;
+    }
+    if (!nombreCliente) {
+      res.status(400).json({ success: false, error: 'Debes elegir un cliente (client_id) o indicar un nombre (client_name)' });
+      return;
+    }
+    const ins = await pool.query(
+      `INSERT INTO orders (catalog_id, client_name, client_id, notes, status, user_id)
+       VALUES ($1, $2, $3, $4, 'draft', $5)
+       RETURNING id, catalog_id, client_name, client_id, notes, status, created_at, user_id`,
+      [Number(catalog_id), nombreCliente, idCliente, notes || null, req.user.id]
+    );
+    res.status(201).json({ success: true, order: ins.rows[0] });
   } catch (error) {
     res.status(400).json({ success: false, error: (error as Error).message });
   }
@@ -698,7 +734,8 @@ app.delete('/api/orders/:id/returns/:returnId', verifyToken, async (req: AuthReq
   }
 });
 
-// ============================================================================// RUTAS DE CLIENTES (clients)
+// ============================================================================
+// RUTAS DE CLIENTES (clients)
 // ============================================================================
 import * as XLSX from 'xlsx';
 
@@ -928,7 +965,6 @@ app.put('/api/users/:id/sage-code', verifyToken, async (req: AuthRequest, res: R
 // ============================================================================
 // RUTA SUBIR IMAGEN DE ARTICULO (protegida)
 // ============================================================================
-
 app.post('/api/upload/image', verifyToken, (req: AuthRequest, res: Response) => {
   subidaImagen.single('imagen')(req, res, (err: any) => {
     if (err) {
@@ -1094,7 +1130,6 @@ async function crearDatosEjemplo(): Promise<void> {
 // INICIAR SERVIDOR
 // ============================================================================
 
-
 async function asegurarTablasEtapa4(): Promise<void> {
   try {
     const existe = await pool.query(
@@ -1229,6 +1264,28 @@ async function asegurarColumnaSageCode(): Promise<void> {
   }
 }
 
+async function asegurarColumnaClientId(): Promise<void> {
+  try {
+    const existe = await pool.query(
+      "SELECT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='orders' AND column_name='client_id') AS e"
+    );
+    if (existe.rows[0].e) {
+      console.log('Columna orders.client_id ya existe, no se recrea');
+      return;
+    }
+    console.log('Añadiendo columna client_id a orders (opcional, FK a clients)...');
+    try {
+      await pool.query("ALTER TABLE orders ADD COLUMN client_id INTEGER REFERENCES clients(id)");
+      await pool.query("CREATE INDEX IF NOT EXISTS idx_orders_client_id ON orders(client_id)");
+      console.log('Columna orders.client_id creada correctamente');
+    } catch (e) {
+      console.error('Aviso creando columna client_id:', (e as Error).message);
+    }
+  } catch (error) {
+    console.error('Error asegurando columna client_id:', (error as Error).message);
+  }
+}
+
 async function startServer() {
   const bdOk = await esperarBaseDatos();
   if (!bdOk) {
@@ -1242,6 +1299,7 @@ async function startServer() {
     await asegurarTablaDevoluciones();
     await asegurarTablaClients();
     await asegurarColumnaSageCode();
+    await asegurarColumnaClientId();
   }
   app.listen(PORT, '0.0.0.0', () => {
     console.log('');
