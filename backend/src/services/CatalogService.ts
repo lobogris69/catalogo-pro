@@ -338,10 +338,12 @@ export class CatalogService {
   async getCatalogArticles(catalogId: number): Promise<any[]> {
     try {
       const result = await this.db.query(
-        `SELECT ca.*, a.name, a.reference, a.image_path, a.pvpr, a.tags, a.state 
-         FROM catalog_articles ca 
-         JOIN articles a ON ca.article_id = a.id 
-         WHERE ca.catalog_id = $1 
+        `SELECT a.id, a.name, a.reference, a.image_path, a.pvpr, a.tags, a.state,
+                ca.display_order, ca.sheet_number, ca.article_id, ca.catalog_id,
+                ca.id AS catalog_article_id
+         FROM catalog_articles ca
+         JOIN articles a ON ca.article_id = a.id
+         WHERE ca.catalog_id = $1
          ORDER BY ca.sheet_number, ca.display_order`,
         [catalogId]
       );
@@ -351,7 +353,6 @@ export class CatalogService {
       throw error;
     }
   }
-
   /**
    * Eliminar catálogo
    */
